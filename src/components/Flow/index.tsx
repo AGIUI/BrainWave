@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useCallback, useRef } from 'react';
 
 import ReactFlow, {
   Controls,
@@ -11,11 +11,11 @@ import ReactFlow, {
   ReactFlowProvider,
   NodeOrigin,
   ConnectionLineType,
-  SelectionMode
+  SelectionMode, MiniMap, Background
 } from 'reactflow';
 import { shallow } from 'zustand/shallow';
 
-import { Button, Radio, Space, Divider } from 'antd';
+import { Radio, } from 'antd';
 
 import useStore, { RFState } from './store';
 import BWNode from './BWNode';
@@ -106,6 +106,18 @@ function Flow() {
 
   const panOnDrag = [1, 2];
 
+  const nodeColor: any = (node: { type: any; }) => {
+    switch (node.type) {
+      case 'input':
+        return '#6ede87';
+      case 'output':
+        return '#6865A5';
+      default:
+        return '#ff0072';
+    }
+  };
+
+  const variant: any = 'lines'  ;
 
   return (
     <ReactFlow
@@ -129,8 +141,15 @@ function Flow() {
       selectionMode={SelectionMode.Partial}
 
     >
-      <Controls showInteractive={false} />
-      <Panel position="top-left">NODES</Panel>
+      <Controls  position={'bottom-left'} />
+      <MiniMap nodeColor={nodeColor} nodeStrokeWidth={3} zoomable pannable inversePan={false} ariaLabel={null} />
+      <Background variant={variant} />
+
+      <Panel position="top-left">
+        NODES
+      </Panel>
+
+
       <Panel position="top-right">
         <Radio.Group value={'large'} onChange={(e) => {
           console.log(reactFlowInstance.toObject())

@@ -1,6 +1,6 @@
 import React from 'react'
 import { Handle, NodeProps, Position } from 'reactflow';
-import { Input, Card, Select, Radio, Slider, Dropdown, Space } from 'antd';
+import { Input, Card, Select, Radio, InputNumber, Dropdown, Space } from 'antd';
 import { DownOutlined } from '@ant-design/icons';
 
 const { TextArea } = Input;
@@ -73,27 +73,38 @@ const nodeStyle = {
 
 
 
-const createType = (type:string,agents: any, onChange: any) => {
-
+const createType = (type: string, agents: any, onChange: any) => {
+  const label = agents.filter((a: any) => a.key == type)[0]?.label || '-';
   return <Dropdown menu={{
-    items: agents, onClick: onChange
+    items: agents, onClick: (e) => {
+      onChange({
+        data: e.key,
+        key: 'type'
+      })
+    }
   }}>
-
     <Space>
-      {type}
+      {label}
       <DownOutlined rev={undefined} />
     </Space>
 
   </Dropdown>
 }
 
-const createText = (title: string, text: string) => <>
+const createText = (title: string, text: string, onChange: any) => <>
   <p>{title}</p>
   <TextArea
     defaultValue={text}
     rows={4}
+    autoSize
     placeholder="maxLength is 6"
-    maxLength={6}
+    // maxLength={6}
+    onChange={(e) => {
+      onChange({
+        key: 'text',
+        data: e.target.value
+      })
+    }}
   /></>;
 
 
@@ -105,55 +116,97 @@ const createText = (title: string, text: string) => <>
  * @param text init / query
  * @returns 
  */
-const createUrl = (title: string, protocol: string, url: string, text: string) => <>
-  <p>{title}</p>
-  <Input addonBefore={
-    <Select defaultValue={protocol} onChange={(e: string) => {
+const createUrl = (title: string, api: any, onChange: any) => {
+  const { protocol, url, init, query, isApi, isQuery } = api;
 
-      var protocol = e;
+  return <>
+    <p>{title}</p>
+    <Input addonBefore={
+      <Select defaultValue={protocol} onChange={(e: string) => {
+        onChange({
+          key: isApi ? 'api' : 'query',
+          data: {
+            ...api, protocol: e
+          }
+        })
 
-    }}>
-      <Option value="http://">http://</Option>
-      <Option value="https://">https://</Option>
-    </Select>
-  }
-    placeholder={`请填写url`}
-    defaultValue={url}
-    onChange={(e: any) => {
-    }}
-  />
-  <TextArea
-    defaultValue={text}
-    rows={4}
-    placeholder="maxLength is 6"
-    maxLength={6}
-  /></>
+      }}>
+        <Option value="http://">http://</Option>
+        <Option value="https://">https://</Option>
+      </Select>
+    }
+      placeholder={`请填写url`}
+      defaultValue={url}
+      onChange={(e: any) => {
+        onChange({
+          key: isApi ? 'api' : 'query',
+          data: {
+            ...api, url: e
+          }
+        })
+      }}
+    />
+    <TextArea
+      defaultValue={JSON.stringify(init, null, 2)}
+      rows={4}
+      placeholder="maxLength is 6"
+      autoSize
+      onChange={(e) => {
+        const data = {
+          ...api
+        }
+        isApi ? data['init'] = JSON.parse(e.target.value) : data['query'] = e.target.value
+        onChange({
+          key: isApi ? 'api' : 'query',
+          data: {
+            ...api, init: JSON.parse(e.target.value)
+          }
+        })
 
-const createModel = (title: string, model: string, temperature: number, opts: any) => <>
-  <p>{title}</p>
+      }}
+    /></>
+}
+
+const createModel = (model: string, temperature: number, opts: any, onChange: any) => <>
+  <p>{opts.filter((m: any) => m.value == 'model')[0].label}</p>
   <Radio.Group
-    onChange={(e) => e.target.value}
+    onChange={(e) => {
+
+      onChange({
+        key: 'model',
+        data: e.target.value
+      })
+
+    }}
     defaultValue={model}
   >
-    {Array.from(opts,
+    {Array.from(opts.filter((m: any) => m.value == 'model')[0].options,
       (p: any, i: number) => {
         return <Radio.Button
           key={i}
           value={p.value}
         >{p.label}</Radio.Button>
       })}
-  </Radio.Group> <Slider
-    style={{ width: '120px' }}
-    range={false}
-    max={1}
+  </Radio.Group>
+  <p>{opts.filter((m: any) => m.value == 'temperature')[0].label}</p>
+  <InputNumber
+    stringMode
+    step="0.01"
+    size="large"
     min={0}
-    step={0.05}
-    defaultValue={temperature}
-    onChange={(e) => e}
-  />
+    max={1}
+    value={temperature.toString()} onChange={(e: any) => {
+      // console.log(e)
+      onChange({
+        key: 'temperature',
+        data: parseFloat(e)
+      })
+
+    }} />
+
 </>
 
-const createInputAndOutput = (title: string, opts: any) => <>
+const createInputAndOutput = (title: string, input: string, opts: any, onChange: any) => <>
   <p>{title}</p>
   <Radio.Group
     style={{
@@ -161,39 +214,124 @@ const createInputAndOutput = (title: string, opts: any) => <>
       justifyContent: 'center',
       alignItems: 'baseline'
     }}
+    defaultValue={input}
+    value={input}
     options={opts}
-    onChange={(e: any) => e} />
+    onChange={(e: any) => {
+      // console.log(e)
+      onChange({
+        key: 'input',
+        data: e.target.value
+      })
+    }} />
 </>
 
 
 
 function BWNode({ id, data }: NodeProps<NodeData>) {
 
+  // 类型
   const agents = data.opts.agents;
-
-  const [key, setKey] = React.useState(agents.filter((a: any) => a.checked)[0].key)
-
+  const [type, setType] = React.useState(data.type)
   const updateType = (e: any) => {
-    setKey(e.key);
-    data.onChange({ id, data: { type: e.key } })
+    if (e.key === 'type') {
+      setType(e.data);
+      data.onChange({ id, data: { type: e.data } })
+    }
+  }
+  // 模型
+  const models = data.opts.models;
+  const [model, setModel] = React.useState(data.model)
+  const [temperature, setTemperature] = React.useState(data.temperature)
+  const updateModel = (e: any) => {
+    // console.log(e)
+    if (e.key === 'model') {
+      setModel(e.data);
+      data.onChange({ id, data: { model: e.data } })
+    }
+    if (e.key === 'temperature') {
+      setTemperature(e.data);
+      data.onChange({ id, data: { temperature: e.data } })
+    }
+  }
+  // text
+  const [text, setText] = React.useState(data.text)
+  const updateText = (e: any) => {
+    // console.log(e)
+    if (e.key === 'text') {
+      setText(e.data);
+      data.onChange({ id, data: { text: e.data } })
+    }
+
+  }
+
+  // api
+  data.api.isApi = type === "api";
+  const [api, setApi] = React.useState(data.api)
+  const updateApi = (e: any) => {
+    // console.log(e)
+    if (e.key === 'api') {
+      setApi(e.data);
+      data.onChange({ id, data: { api: e.data } })
+    }
+
+  }
+
+
+  // queryObj
+  data.queryObj.isQuery = type === "query";
+  const [queryObj, setQueryObj] = React.useState(data.queryObj)
+  const updateQueryObj = (e: any) => {
+    // console.log(e)
+    if (e.key === 'query') {
+      setQueryObj(e.data);
+      data.onChange({ id, data: { queryObj: e.data } })
+    }
+
+  }
+
+  // input
+  const inputs = data.opts.inputs;
+  const [input, setInput] = React.useState(data.input)
+  const updateInput = (e: any) => {
+    // console.log(e)
+    if (e.key === 'input') {
+      setInput(e.data);
+      data.onChange({ id, data: { input: e.data } })
+    }
+
+  }
+
+  // output
+  const outputs = data.opts.outputs;
+  const [output, setOutput] = React.useState(data.output)
+  const updateOutput = (e: any) => {
+    // console.log(e)
+    if (e.key === 'output') {
+      setOutput(e.data);
+      data.onChange({ id, data: { output: e.data } })
+    }
+
   }
 
   return (
     <div style={nodeStyle}>
 
-      <Card title="Default size card" extra={createType(data.type,agents, updateType)} style={{ width: 300 }}>
+      <Card title="Agent" extra={createType(type, agents, updateType)} style={{ width: 300 }}>
 
-        {createText('Prompt', data.text)}
+        {createInputAndOutput('Input', input, inputs, updateInput)}
 
-        {createUrl('API', data.api.protocol, data.api.url, data.api.init)}
+        {createText('Prompt', text, updateText)}
 
-        {createUrl('query', data.queryObj.protocol, data.queryObj.url, data.queryObj.query)}
+        {createModel(model, temperature, models, updateModel)}
 
-        {createModel('模型', data.model, data.temperature, data.opts.models.filter((m: any) => m.value == 'model')[0].options)}
 
-        {createInputAndOutput('Input', data.opts.inputs)}
+        {api.isApi && createUrl('API', api, updateApi)}
 
-        {createInputAndOutput('Output', data.opts.outputs)}
+        {queryObj.isQuery && createUrl('query', queryObj, updateQueryObj)}
+
+    
+        {createInputAndOutput('Output', output, outputs, updateOutput)}
 
 
       </Card>
