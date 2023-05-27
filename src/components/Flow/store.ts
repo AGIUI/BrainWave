@@ -12,6 +12,8 @@ import {
 import { create } from 'zustand';
 import { nanoid } from 'nanoid/non-secure';
 
+import { workflow } from 'components/Flow/Workflow'
+
 export type RFState = {
   nodes: Node[];
   edges: Edge[];
@@ -46,7 +48,11 @@ const defaultNode = {
   model: 'ChatGPT',
   input: 'default',
   output: 'default',
-  type: 'prompt'
+  type: 'prompt',
+  // 以下是选项
+  opts: {
+    ...workflow
+  }
 }
 
 /**
@@ -65,20 +71,26 @@ const useStore = create<RFState>((set, get) => ({
   ],
   edges: [],
   onNodesChange: (changes: NodeChange[]) => {
+    console.log('onNodesChange', changes)
     set({
       nodes: applyNodeChanges(changes, get().nodes),
     });
   },
   onEdgesChange: (changes: EdgeChange[]) => {
+    console.log('onEdgesChange')
     set({
       edges: applyEdgeChanges(changes, get().edges),
     });
   },
   addChildNode: (parentNode: Node, position: XYPosition) => {
+    console.log('addChildNode', parentNode)
+
+    // 可根据 parentNode 判断下一个节点类型
+
     const newNode = {
       id: nanoid(),
       type: 'brainwave',
-      data: { label: 'New Node' },
+      data: { ...defaultNode },
       position,
       parentNode: parentNode.id,
     };
