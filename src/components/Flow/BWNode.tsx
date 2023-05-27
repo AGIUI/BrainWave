@@ -1,7 +1,8 @@
 import { Handle, NodeProps, Position } from 'reactflow';
 
 export type NodeData = {
-  label: string;
+  [x: string]: string | number | readonly string[] | undefined;
+  
 };
 
 const nodeStyle = {
@@ -15,10 +16,13 @@ const nodeStyle = {
 function BWNode({ id, data }: NodeProps<NodeData>) {
   return (
     <div style={nodeStyle}>
-      <input defaultValue={data.label} />
 
-      <Handle type="target" position={Position.Top} />
-      <Handle type="source" position={Position.Bottom} />
+      <p>text</p>
+      <input defaultValue={data.text} />
+
+      <Handle type="target" position={Position.Left} />
+      <Handle type="source" position={Position.Right} />
+
     </div>
   );
 }

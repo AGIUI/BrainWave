@@ -10,6 +10,7 @@ import ReactFlow, {
   ReactFlowProvider,
   NodeOrigin,
   ConnectionLineType,
+  SelectionMode
 } from 'reactflow';
 import { shallow } from 'zustand/shallow';
 
@@ -98,6 +99,8 @@ function Flow() {
     [getChildNodePosition]
   );
 
+  const panOnDrag = [1, 2];
+
   return (
     <ReactFlow
       nodes={nodes}
@@ -113,6 +116,12 @@ function Flow() {
       connectionLineStyle={connectionLineStyle}
       connectionLineType={ConnectionLineType.Straight}
       fitView
+
+      panOnScroll
+      selectionOnDrag
+      panOnDrag={panOnDrag}
+      selectionMode={SelectionMode.Partial}
+
     >
       <Controls showInteractive={false} />
       <Panel position="top-left">NODES</Panel>
