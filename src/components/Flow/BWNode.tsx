@@ -1,6 +1,8 @@
+import React from 'react'
 import { Handle, NodeProps, Position } from 'reactflow';
 import { Input, Card, Select, Radio, Slider, Dropdown, Space } from 'antd';
 import { DownOutlined } from '@ant-design/icons';
+
 const { TextArea } = Input;
 const { Option } = Select;
 
@@ -13,7 +15,8 @@ export type NodeData = {
   input: string,
   output: string,
   type: string,
-  opts: any
+  opts: any,
+  onChange: any
 };
 
 const nodeStyle = {
@@ -21,63 +24,68 @@ const nodeStyle = {
   padding: '2px 5px'
 };
 
-const items: any = [
-  {
-    key: '1',
-    type: 'group',
-    label: 'Group title',
-    children: [
-      {
-        key: '1-1',
-        label: '1st menu item',
-      },
-      {
-        key: '1-2',
-        label: '2nd menu item',
-      },
-    ],
-  },
-  {
-    key: '2',
-    label: 'sub menu',
-    children: [
-      {
-        key: '2-1',
-        label: '3rd menu item',
-      },
-      {
-        key: '2-2',
-        label: '4th menu item',
-      },
-    ],
-  },
-  {
-    key: '3',
-    label: 'disabled sub menu',
-    disabled: true,
-    children: [
-      {
-        key: '3-1',
-        label: '5d menu item',
-      },
-      {
-        key: '3-2',
-        label: '6th menu item',
-      },
-    ],
-  },
-];
+// const items: any = [
+//   {
+//     key: '1',
+//     type: 'group',
+//     label: 'Group title',
+//     children: [
+//       {
+//         key: '1-1',
+//         label: '1st menu item',
+//       },
+//       {
+//         key: '1-2',
+//         label: '2nd menu item',
+//       },
+//     ],
+//   },
+//   {
+//     key: '2',
+//     label: 'sub menu',
+//     children: [
+//       {
+//         key: '2-1',
+//         label: '3rd menu item',
+//       },
+//       {
+//         key: '2-2',
+//         label: '4th menu item',
+//       },
+//     ],
+//   },
+//   {
+//     key: '3',
+//     label: 'disabled sub menu',
+//     disabled: true,
+//     children: [
+//       {
+//         key: '3-1',
+//         label: '5d menu item',
+//       },
+//       {
+//         key: '3-2',
+//         label: '6th menu item',
+//       },
+//     ],
+//   },
+// ];
 
 
 
-const createType = () => <Dropdown menu={{ items }}>
-  <a onClick={(e) => e.preventDefault()}>
+const createType = (type:string,agents: any, onChange: any) => {
+
+  return <Dropdown menu={{
+    items: agents, onClick: onChange
+  }}>
+
     <Space>
-      Cascading menu
+      {type}
       <DownOutlined rev={undefined} />
     </Space>
-  </a>
-</Dropdown>
+
+  </Dropdown>
+}
 
 const createText = (title: string, text: string) => <>
   <p>{title}</p>
@@ -157,12 +165,23 @@ const createInputAndOutput = (title: string, opts: any) => <>
     onChange={(e: any) => e} />
 </>
 
+
+
 function BWNode({ id, data }: NodeProps<NodeData>) {
+
+  const agents = data.opts.agents;
+
+  const [key, setKey] = React.useState(agents.filter((a: any) => a.checked)[0].key)
+
+  const updateType = (e: any) => {
+    setKey(e.key);
+    data.onChange({ id, data: { type: e.key } })
+  }
+
   return (
     <div style={nodeStyle}>
 
-      <Card title="Default size card" extra={createType()} style={{ width: 300 }}>
-
+      <Card title="Default size card" extra={createType(data.type,agents, updateType)} style={{ width: 300 }}>
 
         {createText('Prompt', data.text)}
 
@@ -175,6 +194,7 @@ function BWNode({ id, data }: NodeProps<NodeData>) {
         {createInputAndOutput('Input', data.opts.inputs)}
 
         {createInputAndOutput('Output', data.opts.outputs)}
+
 
       </Card>
 

@@ -1,4 +1,5 @@
-import React, { useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+
 import ReactFlow, {
   Controls,
   OnConnectEnd,
@@ -14,6 +15,8 @@ import ReactFlow, {
 } from 'reactflow';
 import { shallow } from 'zustand/shallow';
 
+import { Button, Radio, Space, Divider } from 'antd';
+
 import useStore, { RFState } from './store';
 import BWNode from './BWNode';
 import BWEdge from './BWEdge';
@@ -21,6 +24,7 @@ import BWEdge from './BWEdge';
 
 // we need to import the React Flow styles to make it work
 import 'reactflow/dist/style.css';
+
 
 const selector = (state: RFState) => ({
   nodes: state.nodes,
@@ -43,6 +47,7 @@ const connectionLineStyle = { stroke: '#F6AD55', strokeWidth: 3 };
 const defaultEdgeOptions = { style: connectionLineStyle, type: 'brainwave' };
 
 function Flow() {
+  const reactFlowInstance = useReactFlow();
   // whenever you use multiple values, you should use shallow for making sure that the component only re-renders when one of the values change
   const { nodes, edges, onNodesChange, onEdgesChange, addChildNode } = useStore(selector, shallow);
   const connectingNodeId = useRef<string | null>(null);
@@ -67,7 +72,7 @@ function Flow() {
 
     // we need to remove the wrapper bounds, in order to get the correct mouse position
     const panePosition = project({
-      x: event.clientX - left,
+      x: event.clientX - left + 100,
       y: event.clientY - top,
     });
 
@@ -83,7 +88,7 @@ function Flow() {
   }, []);
 
   const onConnectEnd: OnConnectEnd = useCallback(
-    (event:any) => {
+    (event: any) => {
       const { nodeInternals } = store.getState();
       const targetIsPane = (event.target as Element).classList.contains('react-flow__pane');
 
@@ -100,6 +105,7 @@ function Flow() {
   );
 
   const panOnDrag = [1, 2];
+
 
   return (
     <ReactFlow
@@ -125,7 +131,15 @@ function Flow() {
     >
       <Controls showInteractive={false} />
       <Panel position="top-left">NODES</Panel>
-      <Panel position="top-right">TOOLS</Panel>
+      <Panel position="top-right">
+        <Radio.Group value={'large'} onChange={(e) => {
+          console.log(reactFlowInstance.toObject())
+        }}>
+          <Radio.Button value="large">Large</Radio.Button>
+          <Radio.Button value="default">Default</Radio.Button>
+          <Radio.Button value="small">Small</Radio.Button>
+        </Radio.Group>
+      </Panel>
     </ReactFlow>
   );
 }
@@ -136,4 +150,3 @@ export default () => (
   </ReactFlowProvider>
 );
 
- 
