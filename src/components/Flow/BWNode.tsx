@@ -193,8 +193,8 @@ const createModel = (model: string, temperature: number, opts: any, onChange: an
     stringMode
     step="0.01"
     size="large"
-    min={0}
-    max={1}
+    min={'0'}
+    max={'1'}
     value={temperature.toString()} onChange={(e: any) => {
       // console.log(e)
       onChange({
