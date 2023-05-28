@@ -15,6 +15,8 @@ import { nanoid } from 'nanoid/non-secure';
 import { defaultNode } from 'components/Flow/Workflow'
 
 export type RFState = {
+  onTagChange: any;
+  tag:string;
   nodes: Node[];
   edges: Edge[];
   onNodesChange: OnNodesChange;
@@ -27,6 +29,7 @@ export type RFState = {
  * 默认的节点
  */
 const useStore = create<RFState>((set, get) => ({
+  tag: 'combo',
   nodes: [
     {
       id: 'root',
@@ -55,6 +58,9 @@ const useStore = create<RFState>((set, get) => ({
     },
   ],
   edges: [],
+  onTagChange: (tag: string) => {
+    set({ tag: tag })
+  },
   onNodesChange: (changes: NodeChange[]) => {
     console.log('onNodesChange', changes, get().nodes)
     set({

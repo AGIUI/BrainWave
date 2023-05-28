@@ -15,7 +15,9 @@ import ReactFlow, {
 } from 'reactflow';
 import { shallow } from 'zustand/shallow';
 
-import { Radio, } from 'antd';
+import { Button, Input } from 'antd';
+const { TextArea } = Input;
+import { nanoid } from 'nanoid/non-secure';
 
 import useStore, { RFState } from './store';
 import BWNode from './BWNode';
@@ -27,8 +29,10 @@ import 'reactflow/dist/style.css';
 
 
 const selector = (state: RFState) => ({
+  tag: state.tag,
   nodes: state.nodes,
   edges: state.edges,
+  onTagChange: state.onTagChange,
   onNodesChange: state.onNodesChange,
   onEdgesChange: state.onEdgesChange,
   addChildNode: state.addChildNode,
@@ -49,7 +53,7 @@ const defaultEdgeOptions = { style: connectionLineStyle, type: 'brainwave' };
 function Flow() {
   const reactFlowInstance = useReactFlow();
   // whenever you use multiple values, you should use shallow for making sure that the component only re-renders when one of the values change
-  const { nodes, edges, onNodesChange, onEdgesChange, addChildNode } = useStore(selector, shallow);
+  const { tag, nodes, edges, onTagChange, onNodesChange, onEdgesChange, addChildNode } = useStore(selector, shallow);
   const connectingNodeId = useRef<string | null>(null);
   const store = useStoreApi();
   const { project } = useReactFlow();
@@ -117,7 +121,86 @@ function Flow() {
     }
   };
 
-  const variant: any = 'lines'  ;
+  const variant: any = 'lines';
+
+  const exportDataToEarth = () => {
+
+
+    const defaultCombo = {
+      tag: '',
+      role: '',
+      combo: 1,
+      interfaces: [],
+      isInfinite: false,
+      owner: 'user',
+      prompt: {},
+      version: '0.1.0',
+      app: 'brainwave',
+      id: '',
+      createDate: (new Date()).getTime()
+    }
+
+
+    const workflow: any = {};
+    const { edges, nodes } = reactFlowInstance.toObject();
+    if (edges.length == 0 && nodes.length == 1) {
+      // 只有一个，则导出
+      workflow[nodes[0].id] = nodes[0].data
+    }
+    for (const edge of edges) {
+      const { source, target } = edge;
+      const sourceNode: any = nodes.filter(node => node.id === source)[0];
+      const targetNode: any = nodes.filter(node => node.id === target)[0];
+      if (sourceNode && targetNode) {
+        workflow[source] = { ...sourceNode.data, nextId: target };
+        workflow[target] = targetNode.data;
+      }
+    }
+    const items: any = [];
+    // console.log(workflow)
+    // 按顺序从到尾
+    const getItems = (id: string, callback: any) => {
+      if (workflow[id]) {
+        console.log(items)
+        items.push(workflow[id]);
+        let nextId = workflow[id].nextId;
+        if (nextId) {
+          getItems(nextId, callback)
+        } else {
+          return callback(items)
+        }
+      }
+    }
+    getItems('root', (result: any) => {
+      const items = JSON.parse(JSON.stringify(result))
+      // 按照combo的格式输出
+      const combo: any = { ...defaultCombo, tag, id: nanoid() }
+      for (let index = 0; index < items.length; index++) {
+        const prompt = items[index];
+        delete prompt.onChange;
+        delete prompt.opts;
+        if (index === 0) {
+          combo.prompt = prompt;
+        }
+        if (index > 0) {
+          combo[`prompt${index + 1}`] = prompt;
+        }
+        combo.combo = index + 1;
+      }
+
+      console.log(combo)
+      download(combo)
+    })
+  }
+
+  const download = (data:any) => {
+    const link = document.createElement('a');
+    link.href = `data:application/json;charset=utf-8,\ufeff${encodeURIComponent(JSON.stringify(data))}`;
+    link.download = `${data.tag}_${data.id}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
 
   return (
     <ReactFlow
@@ -141,7 +224,7 @@ function Flow() {
       selectionMode={SelectionMode.Partial}
 
     >
-      <Controls  position={'bottom-left'} />
+      <Controls position={'bottom-left'} />
       <MiniMap nodeColor={nodeColor} nodeStrokeWidth={3} zoomable pannable inversePan={false} ariaLabel={null} />
       <Background variant={variant} />
 
@@ -151,13 +234,18 @@ function Flow() {
 
 
       <Panel position="top-right">
-        <Radio.Group value={'large'} onChange={(e) => {
-          console.log(reactFlowInstance.toObject())
-        }}>
-          <Radio.Button value="large">Large</Radio.Button>
-          <Radio.Button value="default">Default</Radio.Button>
-          <Radio.Button value="small">Small</Radio.Button>
-        </Radio.Group>
+        <TextArea placeholder="Autosize height based on content lines"
+          autoSize
+          value={tag}
+          onChange={(e: any) => {
+            onTagChange(e.target.value)
+          }}
+        />
+        <Button onClick={() => exportDataToEarth()}>导出
+          {/* <Radio.Button value="large"></Radio.Button> */}
+          {/* <Radio.Button value="default">Default</Radio.Button>
+          <Radio.Button value="small">Small</Radio.Button> */}
+        </Button>
       </Panel>
     </ReactFlow>
   );

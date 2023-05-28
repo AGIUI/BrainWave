@@ -206,7 +206,7 @@ const createModel = (model: string, temperature: number, opts: any, onChange: an
 
 </>
 
-const createInputAndOutput = (title: string, input: string, opts: any, onChange: any) => <>
+const createInputAndOutput = (title: string, key: string, value: string, opts: any, onChange: any) => <>
   <p>{title}</p>
   <Radio.Group
     style={{
@@ -214,13 +214,13 @@ const createInputAndOutput = (title: string, input: string, opts: any, onChange:
       justifyContent: 'center',
       alignItems: 'baseline'
     }}
-    defaultValue={input}
-    value={input}
+    defaultValue={value}
+    value={value}
     options={opts}
     onChange={(e: any) => {
       // console.log(e)
       onChange({
-        key: 'input',
+        key: key,
         data: e.target.value
       })
     }} />
@@ -314,30 +314,35 @@ function BWNode({ id, data }: NodeProps<NodeData>) {
 
   }
 
+  const createNode = () => {
+    const node = [];
+    if (!['api', 'queryObj'].includes(type)) {
+      node.push(createInputAndOutput('Input', 'input', input, inputs, updateInput))
+      node.push(createText('Prompt', text, updateText))
+      node.push(createModel(model, temperature, models, updateModel))
+      node.push(createInputAndOutput('Output', 'output', output, outputs, updateOutput))
+    } else {
+      api.isApi && node.push(createUrl('API', api, updateApi))
+      queryObj.isQuery && node.push(createUrl('query', queryObj, updateQueryObj))
+    }
+
+    return <Card
+      key={id}
+      title="Agent"
+      extra={createType(type, agents, updateType)}
+      style={{ width: 300 }}>
+      {node}
+    </Card>
+  }
+
   return (
     <div style={nodeStyle}>
 
-      <Card title="Agent" extra={createType(type, agents, updateType)} style={{ width: 300 }}>
-
-        {createInputAndOutput('Input', input, inputs, updateInput)}
-
-        {createText('Prompt', text, updateText)}
-
-        {createModel(model, temperature, models, updateModel)}
-
-
-        {api.isApi && createUrl('API', api, updateApi)}
-
-        {queryObj.isQuery && createUrl('query', queryObj, updateQueryObj)}
-
-    
-        {createInputAndOutput('Output', output, outputs, updateOutput)}
-
-
-      </Card>
-
+      {createNode()}
       <Handle type="target" position={Position.Left} />
+
       <Handle type="source" position={Position.Right} />
+
 
     </div>
   );
