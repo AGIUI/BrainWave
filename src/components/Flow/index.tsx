@@ -189,7 +189,7 @@ function Flow() {
       }
 
       console.log(combo)
-      download(combo)
+      download([combo])
     })
   }
 
@@ -201,6 +201,29 @@ function Flow() {
     link.click();
     document.body.removeChild(link);
   }
+
+  const importMyCombo=()=> {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = ".json"
+    document.body.appendChild(input);
+    input.addEventListener('change', (e: any) => {
+        const files = e.target.files;
+        if (files.length == 1) {
+            let file = files[0];
+            let fileReader = new FileReader();
+            fileReader.readAsText(file);
+            fileReader.onload = function () {
+                // 获取得到的结果
+                const data: any = this.result;
+                const json = JSON.parse(data);
+                console.log(json)
+            }
+        }
+        input.remove();
+    }, false)
+    input.click();
+}
 
   return (
     <ReactFlow
