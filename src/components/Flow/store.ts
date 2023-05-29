@@ -12,13 +12,16 @@ import {
 import { create } from 'zustand';
 import { nanoid } from 'nanoid/non-secure';
 
-import { defaultNode } from 'components/Flow/Workflow'
+import { defaultNode, comboOptions } from 'components/Flow/Workflow'
 
 export type RFState = {
-  onTagChange: any;
-  tag:string;
+  newCombo: any;
+  comboOptions: any;
+  tag: string;
   nodes: Node[];
   edges: Edge[];
+  onComboOptionsChange: any;
+  onTagChange: any;
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
   addChildNode: (parentNode: Node, position: XYPosition) => void;
@@ -29,6 +32,7 @@ export type RFState = {
  * 默认的节点
  */
 const useStore = create<RFState>((set, get) => ({
+  comboOptions,
   tag: 'combo',
   nodes: [
     {
@@ -55,14 +59,54 @@ const useStore = create<RFState>((set, get) => ({
         }
       },
       position: { x: 0, y: 0 },
+      deletable:false
     },
   ],
   edges: [],
+  onComboOptionsChange: (changes: any) => {
+    let comboOptions = get().comboOptions;
+    comboOptions = Array.from(comboOptions, (c: any) => {
+      c.checked = changes.includes(c.value);
+      return c
+    })
+    console.log(changes, comboOptions)
+    set({ comboOptions })
+  },
   onTagChange: (tag: string) => {
     set({ tag: tag })
   },
-  onNodesChange: (changes: NodeChange[]) => {
-    console.log('onNodesChange', changes, get().nodes)
+  newCombo: (ns: any, edges: any) => {
+    const nodes = [...Array.from(ns, (nd: any) => {
+      nd.data = {
+        ...defaultNode,
+        ...nd.data,
+        onChange: (e: any) => {
+          const nodes = [];
+          for (const node of get().nodes) {
+            if (node.id === e.id) {
+              nodes.push({
+                ...node, data: {
+                  ...node.data, ...e.data
+                }
+              })
+            } else {
+              nodes.push(node)
+            }
+          }
+          set({
+            nodes
+          });
+        }
+      }
+      return nd
+    })]
+
+    set({ nodes, edges })
+
+  },
+  onNodesChange: (changes: any) => {
+    // const n=applyNodeChanges(changes, get().nodes)
+    // console.log('onNodesChange', changes, get().nodes,n)
     set({
       nodes: applyNodeChanges(changes, get().nodes),
     });
@@ -106,6 +150,7 @@ const useStore = create<RFState>((set, get) => ({
       },
       position,
       parentNode: parentNode.id,
+      deletable:true
     };
     // console.log('addChildNode', parentNode)
     const newEdge = {
