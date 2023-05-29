@@ -112,8 +112,23 @@ const workflow = {
         "temperature": 0
     }
     ]
+    
 }
 
+const comboOptions = [
+    {
+        label: '作为对话流选项',
+        value: 'showInChat',
+    },
+    {
+        label: '作为右键菜单选项',
+        value: 'contextMenus',
+    },
+    {
+        label: '首页',
+        value: 'home',
+    }
+];
 
 const defaultNode = {
     text: '',
@@ -150,5 +165,5 @@ const defaultNode = {
   
 
 export {
-    workflow,defaultNode
+    workflow,defaultNode,comboOptions
 }

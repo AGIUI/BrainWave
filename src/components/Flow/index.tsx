@@ -15,7 +15,7 @@ import ReactFlow, {
 } from 'reactflow';
 import { shallow } from 'zustand/shallow';
 
-import { Button, Input } from 'antd';
+import { Button, Input, Checkbox } from 'antd';
 const { TextArea } = Input;
 import { nanoid } from 'nanoid/non-secure';
 
@@ -23,18 +23,26 @@ import useStore, { RFState } from './store';
 import BWNode from './BWNode';
 import BWEdge from './BWEdge';
 
-
 // we need to import the React Flow styles to make it work
 import 'reactflow/dist/style.css';
 
 
+
+declare const window: Window &
+  typeof globalThis & {
+    _brainwave_import: any
+  }
+
 const selector = (state: RFState) => ({
+  comboOptions: state.comboOptions,
   tag: state.tag,
   nodes: state.nodes,
   edges: state.edges,
+  onComboOptionsChange: state.onComboOptionsChange,
   onTagChange: state.onTagChange,
   onNodesChange: state.onNodesChange,
   onEdgesChange: state.onEdgesChange,
+  newCombo: state.newCombo,
   addChildNode: state.addChildNode,
 });
 
@@ -52,8 +60,9 @@ const defaultEdgeOptions = { style: connectionLineStyle, type: 'brainwave' };
 
 function Flow() {
   const reactFlowInstance = useReactFlow();
+
   // whenever you use multiple values, you should use shallow for making sure that the component only re-renders when one of the values change
-  const { tag, nodes, edges, onTagChange, onNodesChange, onEdgesChange, addChildNode } = useStore(selector, shallow);
+  const { comboOptions, tag, nodes, edges, onTagChange, onComboOptionsChange, onNodesChange, onEdgesChange, newCombo, addChildNode } = useStore(selector, shallow);
   const connectingNodeId = useRef<string | null>(null);
   const store = useStoreApi();
   const { project } = useReactFlow();
@@ -110,9 +119,9 @@ function Flow() {
 
   const panOnDrag = [1, 2];
 
-  const nodeColor: any = (node: { type: any; }) => {
-    switch (node.type) {
-      case 'input':
+  const nodeColor: any = (node: { id: any; }) => {
+    switch (node.id) {
+      case 'root':
         return '#6ede87';
       case 'output':
         return '#6865A5';
@@ -188,19 +197,102 @@ function Flow() {
         combo.combo = index + 1;
       }
 
+      // interfaces
+      combo.interfaces = Array.from(comboOptions, (c: any) => {
+        if (c.checked) return c.value
+      }).filter(f => f)
+
       console.log(combo)
-      download(combo)
+      const fileName = `${combo.tag}_${combo.id}`
+      download(fileName, [combo])
     })
   }
 
-  const download = (data:any) => {
+  const download = (fileName: string, data: any) => {
     const link = document.createElement('a');
     link.href = `data:application/json;charset=utf-8,\ufeff${encodeURIComponent(JSON.stringify(data))}`;
-    link.download = `${data.tag}_${data.id}`;
+    link.download = fileName;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   }
+
+  const openMyCombo = () => {
+    const currentNodes = nodes;
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = ".json"
+    document.body.appendChild(input);
+    input.addEventListener('change', (e: any) => {
+      const files = e.target.files;
+      if (files.length == 1) {
+        let file = files[0];
+        let fileReader = new FileReader();
+        fileReader.readAsText(file);
+        fileReader.onload = function () {
+          // 获取得到的结果
+          const data: any = this.result;
+          const json = JSON.parse(data);
+          if (json && json.length == 1) {
+
+            // 将覆盖
+            if (currentNodes.length > 0) 1
+
+            // 导入
+            const combo = json[0];
+
+            onComboOptionsChange(combo.interfaces);
+            onTagChange(combo.tag);
+
+            let nodes: any = [],
+              source = 'root',
+              edges = [];
+            for (let index = 0; index < combo.combo; index++) {
+              const key = `prompt${index > 0 ? index + 1 : ''}`
+              if (combo[key]) {
+                const id = index == 0 ? "root" : key;
+                nodes.push({
+                  data: combo[key],
+                  height: 597,
+                  id,
+                  position: { x: (312 + 100) * index, y: 0 },
+                  type: "brainwave",
+                  width: 312,
+                  deletable: index > 0
+                });
+
+                if (source != id) edges.push({
+                  source,
+                  target: id,
+                  id: source + '_' + id,
+                  type: 'straight',
+                  animated: true,
+                  label: nodes.filter((node: any) => node.id == source)[0].data.output,
+                  deletable: true,
+                })
+
+                // console.log(nodes.filter((node: any) => node.id == source)[0])
+
+                source = id;
+
+              }
+            }
+            newCombo(nodes, edges);
+
+          }
+        }
+      }
+      input.remove();
+    }, false)
+    input.click();
+  }
+
+  if (typeof (window) !== 'undefined') {
+    var timer = setTimeout(function () {
+      window._brainwave_import = openMyCombo;
+    }, 200);
+  }
+
 
   return (
     <ReactFlow
@@ -232,7 +324,6 @@ function Flow() {
         NODES
       </Panel>
 
-
       <Panel position="top-right">
         <TextArea placeholder="Autosize height based on content lines"
           autoSize
@@ -241,11 +332,17 @@ function Flow() {
             onTagChange(e.target.value)
           }}
         />
-        <Button onClick={() => exportDataToEarth()}>导出
-          {/* <Radio.Button value="large"></Radio.Button> */}
-          {/* <Radio.Button value="default">Default</Radio.Button>
-          <Radio.Button value="small">Small</Radio.Button> */}
-        </Button>
+        <Checkbox.Group
+          options={comboOptions}
+          value={
+            Array.from(comboOptions,
+              (c: any) => c.checked ? c.value : null)
+              .filter(f => f)}
+          onChange={onComboOptionsChange}
+        />
+        <Button onClick={() => exportDataToEarth()}>导出</Button>
+        <Button onClick={() => openMyCombo()}>打开文件</Button>
+
       </Panel>
     </ReactFlow>
   );

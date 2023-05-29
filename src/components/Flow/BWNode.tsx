@@ -316,7 +316,7 @@ function BWNode({ id, data }: NodeProps<NodeData>) {
 
   const createNode = () => {
     const node = [];
-    if (!['api', 'queryObj'].includes(type)) {
+    if (!['api', 'query', 'send-to-zsxq'].includes(type)) {
       node.push(createInputAndOutput('Input', 'input', input, inputs, updateInput))
       node.push(createText('Prompt', text, updateText))
       node.push(createModel(model, temperature, models, updateModel))
