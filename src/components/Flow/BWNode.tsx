@@ -1,12 +1,13 @@
 import React from 'react'
 import { Handle, NodeProps, Position } from 'reactflow';
-import { Input, Card, Select, Radio, InputNumber, Dropdown, Space } from 'antd';
+import { Input, Card, Select, Radio, InputNumber, Dropdown, Space, Button } from 'antd';
 import { DownOutlined } from '@ant-design/icons';
 
 const { TextArea } = Input;
 const { Option } = Select;
 
 export type NodeData = {
+  debug: any;
   text: string,
   api: any,
   queryObj: any,
@@ -19,10 +20,7 @@ export type NodeData = {
   onChange: any
 };
 
-const nodeStyle = {
-  border: '1px solid transparent',
-  padding: '2px 5px'
-};
+
 
 // const items: any = [
 //   {
@@ -228,7 +226,7 @@ const createInputAndOutput = (title: string, key: string, value: string, opts: a
 
 
 
-function BWNode({ id, data }: NodeProps<NodeData>) {
+function BWNode({ id, data, selected }: NodeProps<NodeData>) {
 
   // 类型
   const agents = data.opts.agents;
@@ -326,6 +324,11 @@ function BWNode({ id, data }: NodeProps<NodeData>) {
       queryObj.isQuery && node.push(createUrl('query', queryObj, updateQueryObj))
     }
 
+
+    if (data.debug) {
+      node.push(<Button onClick={(e) => data.debug?data.debug():''} >调试</Button>)
+    }
+
     return <Card
       key={id}
       title="Agent"
@@ -335,6 +338,16 @@ function BWNode({ id, data }: NodeProps<NodeData>) {
     </Card>
   }
 
+  const nodeStyle = selected ? {
+    border: '1px solid transparent',
+    padding: '2px 5px',
+    borderRadius: '12px',
+    backgroundColor: 'cornflowerblue'
+  } : {
+    border: '1px solid transparent',
+    padding: '2px 5px'
+  };
+
   return (
     <div style={nodeStyle}>
 
@@ -342,7 +355,6 @@ function BWNode({ id, data }: NodeProps<NodeData>) {
       <Handle type="target" position={Position.Left} />
 
       <Handle type="source" position={Position.Right} />
-
 
     </div>
   );
