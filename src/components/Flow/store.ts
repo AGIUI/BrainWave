@@ -87,6 +87,9 @@ const useStore = create<RFState>((set, get) => ({
     set({ tag: tag })
   },
   newCombo: (ns: any, edges: any) => {
+
+    set({ nodes: [], edges: [] })
+
     const nodes = [...Array.from(ns, (nd: any) => {
       nd.data = {
         ...defaultNode,
@@ -112,6 +115,8 @@ const useStore = create<RFState>((set, get) => ({
       }
       return nd
     })]
+
+    // console.log(nodes)
 
     set({ nodes, edges })
 

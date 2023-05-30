@@ -287,6 +287,7 @@ function Flow() {
 
         }
       }
+      
       newCombo(nodes, edges);
 
     }

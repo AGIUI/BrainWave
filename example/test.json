@@ -1,0 +1,81 @@
+[{
+    "app": "Earth",
+    "combo": 2,
+    "id": "4c35df6f7513b1ed1926b9b7b1415ab3",
+    "interfaces": [
+        "showInChat",
+        "contextMenus"
+    ],
+    "isInfinite": true,
+    "owner": "user",
+    "prompt": {
+        "api": {
+            "init": {
+                "body": {},
+                "cache": "default",
+                "headers": {
+                    "Content-Type": "application/json"
+                },
+                "method": "POST",
+                "mode": "cors",
+                "responseType": "text"
+            },
+            "isApi": false,
+            "protocol": "https://",
+            "url": ""
+        },
+        "input": "bindCurrentPage",
+        "model": "ChatGPT",
+        "output": "isNextUse",
+        "queryObj": {
+            "isQuery": false,
+            "protocol": "https://",
+            "query": "",
+            "url": ""
+        },
+        "temperature": 0.3,
+        "text": "提取外表特征相关的关键词，并生成一句话英文prompt，按格式输出：prompt:",
+        "type": "prompt",
+        "url": ""
+    },
+    "prompt2": {
+        "api": {
+            "init": {
+                "body": {
+                    "prompt": "${text}",
+                    "steps": 22
+                },
+                "cache": "default",
+                "headers": {
+                    "Content-Type": "application/json"
+                },
+                "method": "POST",
+                "mode": "cors",
+                "responseExtract": {
+                    "key": "images",
+                    "type": "images"
+                },
+                "responseType": "json"
+            },
+            "isApi": true,
+            "protocol": "http://",
+            "url": "127.0.0.1:7860/sdapi/v1/txt2img"
+        },
+        "input": "default",
+        "model": "ChatGPT",
+        "output": "default",
+        "queryObj": {
+            "isQuery": false,
+            "protocol": "https://",
+            "query": "",
+            "url": ""
+        },
+        "temperature": 0.6,
+        "text": "",
+        "type": "api",
+        "url": "127.0.0.1:7860/sdapi/v1/txt2img"
+    },
+    "role": "",
+    "tag": "sd图像生成",
+    "version": "0.3.0"
+}]
