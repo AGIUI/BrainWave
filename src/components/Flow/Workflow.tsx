@@ -155,6 +155,10 @@ const comboOptions = [
     {
         label: '首页',
         value: 'home',
+    },
+    {
+        label: '无限循环',
+        value: 'infinite',
     }
 ];
 

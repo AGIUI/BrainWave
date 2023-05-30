@@ -416,11 +416,12 @@ function Flow() {
           />
           <Divider dashed />
           <p>文件</p>
-          <Button onClick={() => download()} style={{ marginRight: '24px' }}>导出</Button>
-          <Button onClick={() => openMyCombo()}>打开</Button>
           {
-            isSaveCallback ? <Button onClick={() => save()}>保存</Button> : ''
-          }</Card>
+            isSaveCallback ? <Button onClick={() => save()} style={{ marginRight: '24px' }}>保存</Button> : ''
+          }
+          <Button onClick={() => download()} style={{ marginRight: '24px' }}>导出</Button>
+          <Button onClick={() => openMyCombo()} style={{ marginRight: '24px' }}>打开</Button>
+          </Card>
       </Panel>
     </ReactFlow>
   );
