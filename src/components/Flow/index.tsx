@@ -27,10 +27,33 @@ import BWEdge from './BWEdge';
 import 'reactflow/dist/style.css';
 
 
+const _VERVISON = '0.1.0',
+  _APP = 'brainwave';
+
+
+const _DEFAULTCOMBO = {
+  tag: '',
+  role: '',
+  combo: 1,
+  interfaces: [],
+  isInfinite: false,
+  owner: 'user',
+  prompt: {},
+  version: _VERVISON,
+  app: _APP,
+  id: '',
+  createDate: (new Date()).getTime()
+}
+
 
 declare const window: Window &
   typeof globalThis & {
-    _brainwave_import: any
+    _brainwave_import: any,
+    _brainwave_get_current_node_for_workflow: any,
+    _brainwave_get_workflow_data: any,
+    _brainwave_save_callback: any,
+    _brainwave_save_callback_init: any,
+    _brainwave_debug_callback: any
   }
 
 const selector = (state: RFState) => ({
@@ -60,7 +83,7 @@ const defaultEdgeOptions = { style: connectionLineStyle, type: 'brainwave' };
 
 function Flow() {
   const reactFlowInstance = useReactFlow();
-
+  const [isSaveCallback, setIsSaveCallback] = React.useState(false)
   // whenever you use multiple values, you should use shallow for making sure that the component only re-renders when one of the values change
   const { comboOptions, tag, nodes, edges, onTagChange, onComboOptionsChange, onNodesChange, onEdgesChange, newCombo, addChildNode } = useStore(selector, shallow);
   const connectingNodeId = useRef<string | null>(null);
@@ -132,23 +155,12 @@ function Flow() {
 
   const variant: any = 'lines';
 
-  const exportDataToEarth = () => {
-
+  const exportDataToEarth: any = () => {
 
     const defaultCombo = {
-      tag: '',
-      role: '',
-      combo: 1,
-      interfaces: [],
-      isInfinite: false,
-      owner: 'user',
-      prompt: {},
-      version: '0.1.0',
-      app: 'brainwave',
-      id: '',
+      ..._DEFAULTCOMBO,
       createDate: (new Date()).getTime()
     }
-
 
     const workflow: any = {};
     const { edges, nodes } = reactFlowInstance.toObject();
@@ -180,41 +192,105 @@ function Flow() {
         }
       }
     }
-    getItems('root', (result: any) => {
-      const items = JSON.parse(JSON.stringify(result))
-      // 按照combo的格式输出
-      const combo: any = { ...defaultCombo, tag, id: nanoid() }
-      for (let index = 0; index < items.length; index++) {
-        const prompt = items[index];
-        delete prompt.onChange;
-        delete prompt.opts;
-        if (index === 0) {
-          combo.prompt = prompt;
-        }
-        if (index > 0) {
-          combo[`prompt${index + 1}`] = prompt;
-        }
-        combo.combo = index + 1;
-      }
 
-      // interfaces
-      combo.interfaces = Array.from(comboOptions, (c: any) => {
-        if (c.checked) return c.value
-      }).filter(f => f)
+    return new Promise((res, rej) => {
+      getItems('root', (result: any) => {
+        const items = JSON.parse(JSON.stringify(result))
+        // 按照combo的格式输出
+        const combo: any = { ...defaultCombo, tag, id: nanoid() }
+        for (let index = 0; index < items.length; index++) {
+          const prompt = items[index];
+          delete prompt.onChange;
+          delete prompt.opts;
+          if (index === 0) {
+            combo.prompt = prompt;
+          }
+          if (index > 0) {
+            combo[`prompt${index + 1}`] = prompt;
+          }
+          combo.combo = index + 1;
+        }
 
-      console.log(combo)
-      const fileName = `${combo.tag}_${combo.id}`
-      download(fileName, [combo])
+        // interfaces
+        combo.interfaces = Array.from(comboOptions, (c: any) => {
+          if (c.checked) return c.value
+        }).filter(f => f)
+        res(combo)
+      })
     })
   }
 
-  const download = (fileName: string, data: any) => {
-    const link = document.createElement('a');
-    link.href = `data:application/json;charset=utf-8,\ufeff${encodeURIComponent(JSON.stringify(data))}`;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const download = () => {
+    exportDataToEarth.then((combo: any) => {
+      console.log(combo)
+      const fileName = `${combo.tag}_${combo.id}`
+      const data = [combo]
+      const link = document.createElement('a');
+      link.href = `data:application/json;charset=utf-8,\ufeff${encodeURIComponent(JSON.stringify(data))}`;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    })
+  }
+
+  const save = () => {
+    if (typeof (window) !== 'undefined') {
+      if (window._brainwave_save_callback) {
+        window._brainwave_save_callback()
+      }
+    }
+  }
+
+  const load = (json: any) => {
+    if (json && json.length == 1) {
+
+      // 将覆盖
+      // if (currentNodes.length > 0) 1
+
+      // 导入
+      const combo = json[0];
+
+      onComboOptionsChange(combo.interfaces);
+      onTagChange(combo.tag);
+
+      let nodes: any = [],
+        source = 'root',
+        edges = [];
+      for (let index = 0; index < combo.combo; index++) {
+        const key = `prompt${index > 0 ? index + 1 : ''}`
+        if (combo[key]) {
+          const id = index == 0 ? "root" : key;
+          nodes.push({
+            data: combo[key],
+            height: 597,
+            id,
+            position: { x: (312 + 100) * index, y: 0 },
+            type: "brainwave",
+            width: 312,
+            deletable: index > 0
+          });
+
+          if (source != id) edges.push({
+            source,
+            target: id,
+            id: source + '_' + id,
+            type: 'straight',
+            animated: true,
+            label: nodes.filter((node: any) => node.id == source)[0].data.output,
+            deletable: true,
+          })
+
+          // console.log(nodes.filter((node: any) => node.id == source)[0])
+
+          source = id;
+
+        }
+      }
+      
+      newCombo(nodes, edges);
+
+    }
   }
 
   const openMyCombo = () => {
@@ -234,51 +310,7 @@ function Flow() {
           const data: any = this.result;
           const json = JSON.parse(data);
           if (json && json.length == 1) {
-
-            // 将覆盖
-            if (currentNodes.length > 0) 1
-
-            // 导入
-            const combo = json[0];
-
-            onComboOptionsChange(combo.interfaces);
-            onTagChange(combo.tag);
-
-            let nodes: any = [],
-              source = 'root',
-              edges = [];
-            for (let index = 0; index < combo.combo; index++) {
-              const key = `prompt${index > 0 ? index + 1 : ''}`
-              if (combo[key]) {
-                const id = index == 0 ? "root" : key;
-                nodes.push({
-                  data: combo[key],
-                  height: 597,
-                  id,
-                  position: { x: (312 + 100) * index, y: 0 },
-                  type: "brainwave",
-                  width: 312,
-                  deletable: index > 0
-                });
-
-                if (source != id) edges.push({
-                  source,
-                  target: id,
-                  id: source + '_' + id,
-                  type: 'straight',
-                  animated: true,
-                  label: nodes.filter((node: any) => node.id == source)[0].data.output,
-                  deletable: true,
-                })
-
-                // console.log(nodes.filter((node: any) => node.id == source)[0])
-
-                source = id;
-
-              }
-            }
-            newCombo(nodes, edges);
-
+            load(json)
           }
         }
       }
@@ -289,7 +321,18 @@ function Flow() {
 
   if (typeof (window) !== 'undefined') {
     var timer = setTimeout(function () {
-      window._brainwave_import = openMyCombo;
+      window._brainwave_import = load;
+      window._brainwave_get_current_node_for_workflow = () => {
+        const n = nodes.filter(n => n.selected)[0];
+        const combo = {
+          ..._DEFAULTCOMBO,
+          prompt: n.data,
+          createDate: (new Date()).getTime()
+        }
+        return combo
+      };
+      window._brainwave_get_workflow_data = () => exportDataToEarth();
+      window._brainwave_save_callback_init = () => setIsSaveCallback(true)
     }, 200);
   }
 
@@ -340,9 +383,11 @@ function Flow() {
               .filter(f => f)}
           onChange={onComboOptionsChange}
         />
-        <Button onClick={() => exportDataToEarth()}>导出</Button>
+        <Button onClick={() => download()}>导出</Button>
         <Button onClick={() => openMyCombo()}>打开文件</Button>
-
+        {
+          isSaveCallback ? <Button onClick={() => save()}>保存</Button> : ''
+        }
       </Panel>
     </ReactFlow>
   );
