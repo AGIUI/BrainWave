@@ -22,6 +22,7 @@ import { nanoid } from 'nanoid/non-secure';
 import useStore, { RFState } from './store';
 import BWNode from './BWNode';
 import BWEdge from './BWEdge';
+import RoleNode from './RoleNode';
 
 // we need to import the React Flow styles to make it work
 import 'reactflow/dist/style.css';
@@ -33,7 +34,7 @@ const _VERVISON = '0.1.0',
 
 const _DEFAULTCOMBO = {
   tag: '',
-  role: '',
+  role: {},
   combo: 1,
   interfaces: [],
   isInfinite: false,
@@ -71,6 +72,7 @@ const selector = (state: RFState) => ({
 });
 
 const nodeTypes = {
+  role:RoleNode,
   brainwave: BWNode,
 };
 
@@ -169,6 +171,7 @@ function Flow() {
       // 只有一个，则导出
       workflow[nodes[0].id] = nodes[0].data
     }
+    console.log(nodes)
     for (const edge of edges) {
       const { source, target } = edge;
       const sourceNode: any = nodes.filter(node => node.id === source)[0];
@@ -183,7 +186,6 @@ function Flow() {
     // 按顺序从到尾
     const getItems = (id: string, callback: any) => {
       if (workflow[id]) {
-        console.log(items)
         items.push(workflow[id]);
         let nextId = workflow[id].nextId;
         if (nextId) {
@@ -193,7 +195,7 @@ function Flow() {
         }
       }
     }
-
+return
     return new Promise((res, rej) => {
       getItems('root', (result: any) => {
         const items = JSON.parse(JSON.stringify(result))

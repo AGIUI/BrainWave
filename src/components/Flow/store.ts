@@ -47,7 +47,7 @@ const useStore = create<RFState>((set, get) => ({
   nodes: [
     {
       id: 'root',
-      type: 'brainwave',
+      type: 'role',
       data: {
         ...defaultNode,
         onChange: (e: any) => {
@@ -117,8 +117,8 @@ const useStore = create<RFState>((set, get) => ({
     })]
 
     // console.log(nodes)
-   
-    setTimeout(()=>set({ nodes, edges}),500)
+
+    setTimeout(() => set({ nodes, edges }), 500)
 
   },
   onNodesChange: (changes: any) => {
