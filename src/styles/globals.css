@@ -9,8 +9,8 @@ html,
 body,
 #__next {
     height: 100%;
-    color: black;
-    background: #eeeeee42;
+    color: white;
+    background: #000000;
 }
 
 a {
@@ -20,4 +20,12 @@ a {
 
 * {
     box-sizing: border-box;
+}
+
+.react-flow__handle {
+    width: 16px;
+    height: 16px;
+    background: #09d9cf;
+    border: 2px solid white;
+    border-radius: 100%;
 }
