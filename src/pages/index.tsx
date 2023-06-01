@@ -5,7 +5,9 @@ import Flow from 'components/Flow';
 
 import styles from '../styles/Home.module.css';
 
+
 const Home: NextPage = () => {
+
   return (
     <div className={styles.container}>
       <Head>
@@ -14,7 +16,13 @@ const Home: NextPage = () => {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <header className={styles.header}>AGIUI # 编辑器</header>
-      <Flow />
+      <Flow debug={{
+        callback: () => console.log('debug-callback-from-parent'),
+        open: true
+      }}
+        loadData={{ data: { 1: 2 } }}
+        isNew={false}
+      />
     </div>
   );
 };

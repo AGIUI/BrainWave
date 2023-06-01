@@ -1,7 +1,7 @@
 import React from 'react'
 import { Handle, NodeProps, Position } from 'reactflow';
-import { Input, Avatar,Card, Select, Radio, InputNumber, Dropdown, Space, Button, Divider } from 'antd';
-import { DownOutlined } from '@ant-design/icons';
+import { Input, Avatar, Card, Select, Radio, InputNumber, Dropdown, Space, Button, Divider } from 'antd';
+import { DownOutlined, UserOutlined } from '@ant-design/icons';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -33,18 +33,21 @@ const createType = (type: string, agents: any, onChange: any) => {
     }}>
         <Space>
             {label}
-            <DownOutlined rev={undefined} />
+            <DownOutlined />
         </Space>
 
     </Dropdown>
 }
 
-const createName = (name:string, onChange:any) => <Input addonBefore="@" defaultValue={name} onChange={(e) => {
-    onChange({
-        key: 'name',
-        data: e.target.value
-    })
-}} />
+const createName = (title: string, name: string, onChange: any) =>
+    <Input addonBefore="@" defaultValue={name}
+        placeholder={title}
+        onChange={(e) => {
+            onChange({
+                key: 'name',
+                data: e.target.value
+            })
+        }} />
 
 const createText = (title: string, text: string, onChange: any) => <>
     <TextArea
@@ -103,7 +106,7 @@ const createModel = (model: string, temperature: number, opts: any, onChange: an
 
 
 function RoleNode({ id, data, selected }: NodeProps<NodeData>) {
-
+    // console.log('RoleNode', JSON.stringify(data, null, 2))
     // 类型
     const agents = data.opts.agents;
     const [type, setType] = React.useState(data.type)
@@ -142,14 +145,49 @@ function RoleNode({ id, data, selected }: NodeProps<NodeData>) {
     }
 
 
-    const createNode = () => {
+    const createNode = (role: any, updateRole: any) => {
+        // console.log('createNode', role)
         const keys: any = {
             guide: '你的AI员工是个拥有情感、喜恶、过往、抱负、目标、梦想与恐惧的AI机器人，就和一个真人一样。编辑这个员工将重新生成它，赋予它新的简介与小传（除非已被锁定），也可能因此改变它的言论与行为。在编辑AI员工前，请确保您可以接受因此带来的后果。',
             name: '姓名',
             text: '我是...'
         }
-        const url = 'https://gw.alipayobjects.com/zos/rmsportal/KDpgvguMpGfqaHPjicRK.svg';
 
+        const handleMenuClick: any = (e: any) => {
+            // message.info('Click on menu item.');
+            console.log('click', e);
+        };
+
+        const items: any = [
+            {
+                label: '工程师',
+                key: '1',
+                icon: <UserOutlined />,
+            },
+            {
+                label: '设计师',
+                key: '2',
+                icon: <UserOutlined />,
+            },
+            {
+                label: '财务官',
+                key: '3',
+                icon: <UserOutlined />,
+                danger: true,
+            },
+            {
+                label: '执行官',
+                key: '4',
+                icon: <UserOutlined />,
+                danger: true,
+                disabled: true,
+            },
+        ];
+
+        const menuProps: any = {
+            items,
+            onClick: handleMenuClick,
+        };
         return <Card
             key={id}
             title="Role"
@@ -157,18 +195,25 @@ function RoleNode({ id, data, selected }: NodeProps<NodeData>) {
             style={{ width: 300 }}>
             <Space direction="vertical" size="middle" style={{ display: 'flex' }}>
 
-            <Avatar src={<img src={url} alt="avatar" />} />
+                {/* <Dropdown menu={menuProps}>
+                    <Button>
+                        <Space>
+                            职业
+                            <DownOutlined rev={undefined} />
+                        </Space>
+                    </Button>
+                </Dropdown> */}
 
-                {
-                    createName(role.name, updateRole)
-                }
-             
+                {createName(keys['name'], role.name, updateRole)}
+
                 {createText(keys['text'], role.text, updateRole)}
 
-                <Space direction="horizontal" size="middle" style={{ display: 'flex' }}>
-                    {data.debug ? <Button onClick={(e) => data.debug ? data.debug() : ''} >调试</Button> : ''}
+                {createModel(model, temperature, models, updateModel)}
 
-                    <Button onClick={(e) => console.log(role)} >开始</Button>
+                <Space direction="horizontal" size="middle" style={{ display: 'flex' }}>
+                    {data.debug ? <Button onClick={(e) => data.debug ? data.debug(data) : ''} >调试</Button> : ''}
+
+                    {/* <Button onClick={(e) => console.log(role)} >开始</Button> */}
                 </Space>
 
             </Space>
@@ -189,7 +234,7 @@ function RoleNode({ id, data, selected }: NodeProps<NodeData>) {
     return (
         <div style={nodeStyle}>
 
-            {createNode()}
+            {createNode(role, updateRole)}
             {/* <Handle type="target" position={Position.Left} /> */}
 
             <Handle type="source" position={Position.Right} />
