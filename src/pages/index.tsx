@@ -21,7 +21,7 @@ const Home: NextPage = () => {
         open: true
       }}
         loadData={{ data: { 1: 2 } }}
-        isNew={false}
+        isNew={true}
       />
     </div>
   );
