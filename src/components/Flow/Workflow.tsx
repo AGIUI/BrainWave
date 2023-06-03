@@ -15,6 +15,29 @@ const display = [
 ]
 
 
+/**
+ * 角色库
+ */
+
+const roleAvatars = [
+    {
+        label: '工程师',
+        key: 'Engineer'
+    },
+    {
+        label: '设计师',
+        key: 'Designer'
+    }, {
+        label: '财务官',
+        key: 'Financial-Officer'
+    }, {
+        label: '执行官',
+        key: 'Executive-Officer'
+    }
+]
+
+
+
 const workflow = {
     "models": [
         {
@@ -196,6 +219,10 @@ const comboOptions = [
 ];
 
 const defaultNode = {
+    role: {
+        name: '',
+        text: ''
+    },
     text: '',
     url: '',
     api: {
@@ -228,7 +255,61 @@ const defaultNode = {
 
 }
 
+const _DEFAULTCOMBO = {
+    tag: 'default',
+    combo: 1,
+    interfaces: [],
+    isInfinite: false,
+    owner: 'user',
+    prompt: {},
+    version: '0.3.3',
+    app: 'earth',
+    id: 'default',
+    createDate: (new Date()).getTime()
+}
+
+const debugInfo = (prompt: any) => {
+    console.log('debugInfo', prompt)
+    let info = '';
+    if (prompt.type == 'role') {
+        info = `<p>${prompt.role.name}</p><br><p>${prompt.role.text}</p>`
+    } else {
+        info = `<p>${JSON.stringify({
+            text: prompt.text,
+            input: prompt.input,
+            output: prompt.output,
+            type: prompt.type,
+            model: prompt.model,
+            temperature: prompt.temperature
+        }, null, 2)}</p>`;
+    }
+    return info
+}
+
+//   把一条prompt包装成_control可以执行的数据格式
+const parsePrompt2ControlEvent = (prompt: any) => {
+    const controlEvent = {
+        '_combo': {
+            ..._DEFAULTCOMBO,
+            prompt,
+            createDate: (new Date()).getTime()
+        },
+        from: 'debug',
+        prompt,
+        // 调试状态的显示
+        tag: debugInfo(prompt),
+        debugInfo: debugInfo(prompt),
+        newTalk: true,
+        autoRun: true,
+        id: (new Date()).getTime()
+    }
+    return controlEvent
+}
 
 export {
-    workflow, defaultNode, comboOptions
+    roleAvatars,
+    workflow, defaultNode,
+    comboOptions,
+    _DEFAULTCOMBO,
+    parsePrompt2ControlEvent
 }

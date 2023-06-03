@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useRef, useEffect } from 'react';
 
 import ReactFlow, {
   Controls,
@@ -11,54 +11,61 @@ import ReactFlow, {
   ReactFlowProvider,
   NodeOrigin,
   ConnectionLineType,
-  SelectionMode, MiniMap, Background
+  SelectionMode, MiniMap, Background, ReactFlowInstance
 } from 'reactflow';
 import { shallow } from 'zustand/shallow';
 
-import { Button, Input, Checkbox, Card, Divider } from 'antd';
+import { Button, Input, Checkbox, Card, Divider, Collapse, Popconfirm, Space } from 'antd';
+
+const { Panel: Panel0 } = Collapse;
 const { TextArea } = Input;
 import { nanoid } from 'nanoid/non-secure';
 
 import useStore, { RFState } from './store';
 import BWNode from './BWNode';
 import BWEdge from './BWEdge';
+import RoleNode from './RoleNode';
 
 // we need to import the React Flow styles to make it work
 import 'reactflow/dist/style.css';
 
+import { _DEFAULTCOMBO } from './Workflow'
 
 const _VERVISON = '0.1.0',
   _APP = 'brainwave';
 
+_DEFAULTCOMBO.version = _VERVISON;
+_DEFAULTCOMBO.app = _APP;
 
-const _DEFAULTCOMBO = {
-  tag: '',
-  role: '',
-  combo: 1,
-  interfaces: [],
-  isInfinite: false,
-  owner: 'user',
-  prompt: {},
-  version: _VERVISON,
-  app: _APP,
-  id: '',
-  createDate: (new Date()).getTime()
-}
+// const _DEFAULTCOMBO = {
+//   tag: '',
+//   combo: 1,
+//   interfaces: [],
+//   isInfinite: false,
+//   owner: 'user',
+//   prompt: {},
+//   version: _VERVISON,
+//   app: _APP,
+//   id: '',
+//   createDate: (new Date()).getTime()
+// }
 
 
-declare const window: Window &
-  typeof globalThis & {
-    _brainwave_import: any,
-    _brainwave_get_current_node_for_workflow: any,
-    _brainwave_get_workflow_data: any,
-    _brainwave_save_callback: any,
-    _brainwave_save_callback_init: any,
-    _brainwave_debug_callback: any
-  }
+// declare const window: Window &
+//   typeof globalThis & {
+//     _brainwave_import: any,
+//     _brainwave_get_current_node_for_workflow: any,
+//     _brainwave_get_workflow_data: any,
+//     _brainwave_save_callback: any,
+//     _brainwave_save_callback_init: any,
+//     _brainwave_debug_callback: any
+//   }
 
 const selector = (state: RFState) => ({
   comboOptions: state.comboOptions,
+  id: state.id,
   tag: state.tag,
+  defaultNode: state.defaultNode,
   nodes: state.nodes,
   edges: state.edges,
   onComboOptionsChange: state.onComboOptionsChange,
@@ -67,10 +74,10 @@ const selector = (state: RFState) => ({
   onEdgesChange: state.onEdgesChange,
   newCombo: state.newCombo,
   addChildNode: state.addChildNode,
-
 });
 
 const nodeTypes = {
+  role: RoleNode,
   brainwave: BWNode,
 };
 
@@ -82,11 +89,29 @@ const nodeOrigin: NodeOrigin = [0.5, 0.5];
 const connectionLineStyle = { stroke: '#F6AD55', strokeWidth: 3 };
 const defaultEdgeOptions = { style: connectionLineStyle, type: 'brainwave' };
 
-function Flow() {
+function Flow(props: any) {
+
+  const { debug, loadData, isNew, saveCallback, deleteCallback } = props;
+  // console.log('Flow isNew', isNew)
+
   const reactFlowInstance = useReactFlow();
-  const [isSaveCallback, setIsSaveCallback] = React.useState(false)
+
   // whenever you use multiple values, you should use shallow for making sure that the component only re-renders when one of the values change
-  const { comboOptions, tag, nodes, edges, onTagChange, onComboOptionsChange, onNodesChange, onEdgesChange, newCombo, addChildNode } = useStore(selector, shallow);
+  const {
+    comboOptions,
+    id,
+    tag,
+    defaultNode,
+    nodes,
+    edges,
+    onTagChange,
+    onComboOptionsChange,
+    onNodesChange,
+    onEdgesChange,
+    newCombo,
+    addChildNode
+  } = useStore(selector, shallow);
+
   const connectingNodeId = useRef<string | null>(null);
   const store = useStoreApi();
   const { project } = useReactFlow();
@@ -137,6 +162,7 @@ function Flow() {
           addChildNode(parentNode, childNodePosition);
         }
       };
+      // setTimeout(() => onSave(), 200)
     },
     [getChildNodePosition]
   );
@@ -156,8 +182,8 @@ function Flow() {
 
   const variant: any = 'dots';
 
+  // 导出
   const exportDataToEarth: any = () => {
-
     const defaultCombo = {
       ..._DEFAULTCOMBO,
       createDate: (new Date()).getTime()
@@ -167,12 +193,17 @@ function Flow() {
     const { edges, nodes } = reactFlowInstance.toObject();
     if (edges.length == 0 && nodes.length == 1) {
       // 只有一个，则导出
-      workflow[nodes[0].id] = nodes[0].data
+      const id = nodes[0].id.match('root_') ? 'root' : nodes[0].id
+      workflow[id] = nodes[0].data
     }
+    // console.log(nodes)
     for (const edge of edges) {
-      const { source, target } = edge;
-      const sourceNode: any = nodes.filter(node => node.id === source)[0];
-      const targetNode: any = nodes.filter(node => node.id === target)[0];
+      let { source, target } = edge;
+      source = source.match('root_') ? 'root' : source;
+      target = target.match('root_') ? 'root' : target;
+
+      const sourceNode: any = nodes.filter(node => (node.id.match('root_') ? 'root' : node.id) === source)[0];
+      const targetNode: any = nodes.filter(node => (node.id.match('root_') ? 'root' : node.id) === target)[0];
       if (sourceNode && targetNode) {
         workflow[source] = { ...sourceNode.data, nextId: target };
         workflow[target] = targetNode.data;
@@ -183,7 +214,6 @@ function Flow() {
     // 按顺序从到尾
     const getItems = (id: string, callback: any) => {
       if (workflow[id]) {
-        console.log(items)
         items.push(workflow[id]);
         let nextId = workflow[id].nextId;
         if (nextId) {
@@ -196,13 +226,20 @@ function Flow() {
 
     return new Promise((res, rej) => {
       getItems('root', (result: any) => {
-        const items = JSON.parse(JSON.stringify(result))
+        // console.log(result)
+        const items = JSON.parse(JSON.stringify(result));
+
+        // role节点赋予全部节点的role字段
+        const rolePrompt = items.filter((item: any) => item.type == 'role')[0];
+
         // 按照combo的格式输出
-        const combo: any = { ...defaultCombo, tag, id: nanoid() }
+        const combo: any = { ...defaultCombo, tag, id: id }
         for (let index = 0; index < items.length; index++) {
           const prompt = items[index];
+          prompt.role = { ...rolePrompt.role };
           delete prompt.onChange;
           delete prompt.opts;
+
           if (index === 0) {
             combo.prompt = prompt;
           }
@@ -223,7 +260,7 @@ function Flow() {
 
   const download = () => {
     exportDataToEarth().then((combo: any) => {
-      console.log(combo)
+      console.log('download', combo)
       const fileName = `${combo.tag}_${combo.id}`
       const data = [combo]
       const link = document.createElement('a');
@@ -236,14 +273,20 @@ function Flow() {
   }
 
   const save = () => {
-    if (typeof (window) !== 'undefined') {
-      if (window._brainwave_save_callback) {
-        window._brainwave_save_callback()
-      }
+    if (saveCallback) {
+      exportDataToEarth().then((res: any) => {
+        saveCallback(res)
+        // message.info('已保存')
+      })
     }
+    // if (typeof (window) !== 'undefined') {
+    //   if (window._brainwave_save_callback) {
+    //     window._brainwave_save_callback()
+    //   }
+    // }
   }
 
-  const load = (json: any) => {
+  const load = (json: any, debug: any) => {
     if (json && json.length == 1) {
 
       // 将覆盖
@@ -252,26 +295,70 @@ function Flow() {
       // 导入
       const combo = json[0];
 
-      onComboOptionsChange(combo.interfaces);
-      onTagChange(combo.tag);
-
       let nodes: any = [],
-        source = 'root',
+        source = 'root_' + nanoid(),
         edges = [];
+
+
+      const nodePosition = (index: number) => {
+        return {
+          height: 597,
+          position: { x: (312 + 100) * (index), y: 0 },
+          width: 312
+        }
+      }
+
+
+      // ----- 如果没有role，则在第一个新加一个role节点
+      const comboNew: any = { ...combo };
+      const prompts = [];
       for (let index = 0; index < combo.combo; index++) {
-        const key = `prompt${index > 0 ? index + 1 : ''}`
-        if (combo[key]) {
-          const id = index == 0 ? "root" : key;
+        const key = `prompt${index > 0 ? index + 1 : ''}`;
+        // 如果没有role，则在第一个新加一个role节点
+        if (combo[key] && index == 0 && combo[key].type !== 'role') {
+          // const id = index == 0 ? source : key + combo.id;
+          // comboNew.combo++;
+          const p = { ...combo[key] };
+          p.type = 'role';
+          p.role = { name: '', text: '' }
+          p.input = 'default'
+          p.output = 'default'
+          // role类型需求清空text字段
+          p.text = ""
+          prompts.push(p);
+        }
+        if (combo[key]) prompts.push(combo[key])
+      }
+      // console.log('comboNew', comboNew, prompts)
+
+      comboNew.combo = prompts.length;
+      for (let index = 0; index < prompts.length; index++) {
+        const key = `prompt${index > 0 ? index + 1 : ''}`;
+        comboNew[key] = prompts[index];
+      }
+      // ----- 如果没有role，则在第一个新加一个role节点
+
+      //
+      for (let index = 0; index < comboNew.combo; index++) {
+        const key = `prompt${index > 0 ? index + 1 : ''}`;
+        if (comboNew[key]) {
+          const id = index == 0 ? source : key + comboNew.id;
+
+          if (comboNew[key].type == 'role') {
+            // role类型需求清空text字段
+            comboNew[key].text = ""
+          }
+
+          // node
           nodes.push({
-            data: combo[key],
-            height: 597,
+            data: comboNew[key],
             id,
-            position: { x: (312 + 100) * index, y: 0 },
-            type: "brainwave",
-            width: 312,
-            deletable: index > 0
+            type: comboNew[key].type == 'role' ? 'role' : "brainwave",
+            deletable: comboNew[key].type !== 'role',
+            ...nodePosition(index)
           });
 
+          // edge
           if (source != id) edges.push({
             source,
             target: id,
@@ -282,16 +369,21 @@ function Flow() {
             deletable: true,
           })
 
-          // console.log(nodes.filter((node: any) => node.id == source)[0])
-
           source = id;
 
         }
       }
 
-      newCombo(nodes, edges);
+      // console.log('newCombo', comboNew)
+      newCombo(comboNew.id, comboNew.tag, comboNew.interfaces, nodes, edges, debug);
+
+      clearLocalStore()
 
     }
+  }
+
+  const deleteMyCombo = (comboId: string) => {
+    if (deleteCallback) deleteCallback(comboId)
   }
 
   const openMyCombo = () => {
@@ -311,7 +403,7 @@ function Flow() {
           const data: any = this.result;
           const json = JSON.parse(data);
           if (json && json.length == 1) {
-            load(json)
+            load(json, debug)
           }
         }
       }
@@ -320,58 +412,81 @@ function Flow() {
     input.click();
   }
 
-  if (typeof (window) !== 'undefined') {
-    var timer = setTimeout(function () {
-      window._brainwave_import = load;
-      window._brainwave_get_current_node_for_workflow = () => {
-        const n = nodes.filter(n => n.selected)[0];
-        const combo = {
-          ..._DEFAULTCOMBO,
-          prompt: n.data,
-          createDate: (new Date()).getTime()
-        }
-        return combo
-      };
-      window._brainwave_get_workflow_data = () => exportDataToEarth();
-      window._brainwave_save_callback_init = () => setIsSaveCallback(true)
-    }, 200);
-  }
+  // if (typeof (window) !== 'undefined') {
+  //   var timer = setTimeout(function () {
+
+  //   }, 200);
+  // }
 
   const onSave = useCallback(() => {
     if (reactFlowInstance) {
-      const flow = reactFlowInstance.toObject();
-      localStorage.setItem('flowKey', JSON.stringify(flow));
+      const flow: any = reactFlowInstance.toObject();
+
+      // interfaces
+      flow.interfaces = Array.from(comboOptions, (c: any) => {
+        if (c.checked) return c.value
+      }).filter(f => f);
+
+      flow.tag = tag;
+
+      localStorage.setItem('flowKey', JSON.stringify({ ...flow, isNew: false }));
     }
-  }, [reactFlowInstance]);
+  }, [reactFlowInstance, tag, comboOptions]);
 
   const onRestore = useCallback(() => {
-    const restoreFlow = async () => {
-      const flow = JSON.parse(localStorage.getItem('flowKey') || '{}');
-      if (flow) {
-        newCombo(flow.nodes || [], flow.edges || []);
-      }
-    };
+    // const restoreFlow = async () => {
+    //   const flow = JSON.parse(localStorage.getItem('flowKey') || '{}');
+    //   if (flow) {
+    //     // console.log('flow', flow)
+    //     newCombo(flow.tag || '', flow.interfaces || [], flow.nodes || [defaultNode], flow.edges || [], debug);
+    //   }
+    // };
+    // restoreFlow();
+  }, [newCombo, debug]);
 
-    restoreFlow();
-  }, [newCombo]);
+  const newWorkflow = () => {
+    newCombo(nanoid(), 'new', [], [defaultNode], [], debug);
+  }
+
+  const clearLocalStore = () => localStorage.setItem('flowKey', '{}');
+
+  const onInit = (reactFlowInstance: ReactFlowInstance) => {
+
+    if (typeof (localStorage) !== 'undefined' && loadData[0]) localStorage.setItem('loadDataId', loadData[0].id);
+
+    // const isNew = localStorage.getItem('isNew');
+    console.log('flow - - - - onInit', id)
+    // isNew == "1" ? newWorkflow() : onRestore()
+    // newWorkflow()
+  }
+
+  const onChange = () => {
+    console.log('flow - - - - onChange', id)
+    // setInterval(()=>onSave(),3000)
+    // setTimeout(() => onSave(), 200)
+    if (typeof (localStorage) !== 'undefined' && loadData[0]) localStorage.setItem('loadDataId', id);
+  };
+
+  useEffect(() => {
+    if (isNew) {
+      newWorkflow()
+    } else {
+      loadData && load(loadData, debug)
+    }
+  }, [loadData, isNew, debug])
 
 
-  // onRestore()
+  // console.log('loadData',loadData)
+
 
   return (
     <ReactFlow
       nodes={nodes}
       edges={edges}
-      onNodesChange={(e)=>{
-        onNodesChange(e);
-        onSave()
-      }}
+      onNodesChange={onNodesChange}
       onEdgesChange={onEdgesChange}
       onConnectStart={onConnectStart}
-      onConnectEnd={(e)=>{
-        onConnectEnd(e);
-        onSave()
-      }}
+      onConnectEnd={onConnectEnd}
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
       nodeOrigin={nodeOrigin}
@@ -385,51 +500,87 @@ function Flow() {
       selectionOnDrag
       panOnDrag={panOnDrag}
       selectionMode={SelectionMode.Partial}
-
+      onInit={onInit}
+      onChange={onChange}
     >
-      <Controls position={'bottom-left'} />
-      <MiniMap nodeColor={nodeColor} nodeStrokeWidth={3} zoomable pannable inversePan={false} ariaLabel={null} />
+      <Controls style={{ display: 'flex', flexDirection: 'row' }} position={'bottom-center'} />
+      {/*<MiniMap nodeColor={nodeColor} nodeStrokeWidth={3} zoomable pannable inversePan={false} ariaLabel={null} />*/}
       <Background variant={variant} />
 
       {/* <Panel position="top-left">
         NODES
       </Panel> */}
 
+
+
       <Panel position="top-right">
-        <Card style={{ width: '300px' }}>
-          <p>名称</p>
-          <TextArea placeholder="Autosize height based on content lines"
-            autoSize
-            value={tag}
-            onChange={(e: any) => {
-              onTagChange(e.target.value)
-            }}
-          />
-          <p>Interfaces</p>
-          <Checkbox.Group
-            options={comboOptions}
-            value={
-              Array.from(comboOptions,
-                (c: any) => c.checked ? c.value : null)
-                .filter(f => f)}
-            onChange={onComboOptionsChange}
-          />
-          <Divider dashed />
-          <p>文件</p>
-          {
-            isSaveCallback ? <Button onClick={() => save()} style={{ marginRight: '24px' }}>保存</Button> : ''
-          }
-          <Button onClick={() => download()} style={{ marginRight: '24px' }}>导出</Button>
-          <Button onClick={() => openMyCombo()} style={{ marginRight: '24px' }}>打开</Button>
-          </Card>
+        <Card
+          bodyStyle={{
+            padding: 10
+          }}
+        >
+          <Collapse ghost size="small">
+            <Panel0 header="菜单" key="1">
+              <Space direction="horizontal" style={{ width: '100%' }} size={"small"}>
+                <span style={{ fontWeight: "bold" }}>工作流名称</span>
+                <Input placeholder="输入名称..."
+                  name={"标题"}
+                  value={tag}
+                  onChange={(e: any) => onTagChange(e.target.value)}
+                />
+              </Space>
+              <p style={{ fontWeight: "bold" }}>设置选项</p>
+              <Checkbox.Group
+                options={comboOptions}
+                value={
+                  Array.from(comboOptions,
+                    (c: any) => c.checked ? c.value : null)
+                    .filter(f => f)}
+                onChange={onComboOptionsChange}
+              />
+              <Divider dashed />
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <Button onClick={() => openMyCombo()} style={{ marginRight: '10px' }}>导入</Button>
+                <Button onClick={() => download()} style={{ marginRight: '10px' }}>下载</Button>
+                {deleteCallback ? <Popconfirm
+                  placement="bottomRight"
+                  title={'确定删除？'}
+                  onConfirm={() => deleteMyCombo(id)}
+
+                  okText="是的"
+                  cancelText="取消"
+                  zIndex={100000000}
+                >
+                  <Button danger
+                    style={{ marginRight: '10px' }}
+                  >
+                    删除
+                  </Button>
+
+                </Popconfirm> : ''}
+
+                {/* <Button 
+                danger 
+                style={{marginRight: '10px'}}
+                onClick={()=>deleteMyCombo()}
+                >删除</Button> */}
+                {saveCallback ?
+                  <Button type={"primary"} onClick={() => save()}>保存</Button> : ''}
+              </div>
+            </Panel0>
+          </Collapse>
+        </Card>
       </Panel>
     </ReactFlow>
   );
 }
 
-export default () => (
-  <ReactFlowProvider >
-    <Flow />
-  </ReactFlowProvider>
-);
+export default (props: any) => {
+  const { debug, loadData, isNew, saveCallback, deleteCallback } = props;
+  return (<ReactFlowProvider >
+    <Flow debug={debug} loadData={loadData} isNew={isNew} saveCallback={saveCallback} deleteCallback={deleteCallback} />
+  </ReactFlowProvider>)
+};
+
+
 
