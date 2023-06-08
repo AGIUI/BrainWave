@@ -17,6 +17,8 @@ const menuNames = {
 }
 
 export type NodeData = {
+  debugInput:any;
+  debugOutput:any;
   debug: any;
   queryObj: any,
   type: string,
@@ -110,7 +112,7 @@ function QueryReadNode({ id, data, selected }: NodeProps<NodeData>) {
       createUrl(menuNames.content, menuNames.selectQuery, menuNames.placeholder, queryObj, updateQueryObj)
     ];
 
-    node.push(createDebug(id, "", '', (event: any) => {
+    node.push(createDebug(id, data.debugInput, data.debugOutput, (event: any) => {
       if (event.key == 'input') { }
     }, () => data.debug ? data.debug(data) : '', {}))
 

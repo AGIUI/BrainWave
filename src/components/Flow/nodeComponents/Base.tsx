@@ -13,14 +13,16 @@ const menuNames = {
     outputText: '输出',
     outputTextPlaceholder: '',
     debugRun: '运行',
-    getFromBefore: "从上一节点获取文本 ${text} ",
+    getFromBefore: "从上一节点获取文本",
     getUserInput: '输入文本',
     userInput: "请输入任意文本"
 }
 
 // 从上一节点获取文本
 export const selectNodeInput = (nodeInputId: string, nodeOpts: any, onChange: any) => {
-    const [checked, setChecked] = React.useState(false)
+
+    const [checked, setChecked] = React.useState(nodeOpts.filter((n: any) => n.value === nodeInputId).length >0)
+    // console.log(nodeOpts.filter((n: any) => n.value === nodeInputId))
     return <>
         <Checkbox
             style={{ marginTop: '12px' }}
@@ -67,7 +69,7 @@ export const selectInput = (nodeInputId: string, userInput: string, nodeOpts: an
                 })
             }}
             options={[
-                { value: 'nodeInput', label: menuNames.getFromBefore },
+                { value: 'nodeInput', label: menuNames.getFromBefore + ' ${text}' },
                 { value: 'userInput', label: menuNames.getUserInput },
             ]}
         />
@@ -156,10 +158,13 @@ export const createDebug = (
     const {
         statusInput, statusOutput
     } = status || {};
+
+    // console.log('createDebug:::',input)
+
     return <Collapse bordered={false}
         size="small"
-        expandIcon={({ isActive }) => <CaretRightOutlined rotate={isActive ? 90 : 0} rev={undefined} />}
-        style={{ background: '#eee', marginTop: '24px' }}
+        expandIcon={({ isActive }) => <CaretRightOutlined rotate={isActive ? 90 : 0} />}
+        style={{ background: '#eee', marginTop: '32px' }}
     >
         <Panel header={header} key="1">
             <p style={{
@@ -170,7 +175,7 @@ export const createDebug = (
                 input && createText('input', inputText, inputTextPlaceholder, input, statusInput, onChange)
             }
             {
-                output && createText('output', outputText, outputTextPlaceholder, output, statusOutput || '-', null)
+                output && createText('output', outputText, outputTextPlaceholder, output, statusOutput || '-', onChange)
             }
 
             <Divider dashed />

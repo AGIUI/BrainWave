@@ -17,6 +17,7 @@ import { node } from 'prop-types';
 
 
 export type RFState = {
+  debugStatus: any;
   defaultNode: any;
   id: string;
   debug: any;
@@ -64,6 +65,15 @@ const onChangeForNodes = (event: any, getNodes: any) => {
   return nodes
 }
 
+
+const debugRun = (id: string, prompt: any, debug: any, onChange: any) => {
+  const controlEvent: any = parsePrompt2ControlEvent(id, prompt)
+  controlEvent.onChange = onChange
+  debug.callback(controlEvent)
+}
+
+
+
 /**
  * 默认的节点
  */
@@ -97,6 +107,11 @@ const useStore = create<RFState>((set, get) => ({
   onTagChange: (tag: string) => {
     set({ tag })
   },
+  debugStatus: (event: any) => {
+    const nodes = onChangeForNodes(event, get().nodes);
+    // console.log('debugStatus', nodes)
+    set({ nodes })
+  },
   // 完成调试状态和节点的导入、初始化等
   newCombo: (id: string, tag: string, interfaces: any, ns: any, edges: any, debug: any) => {
     const oId = get().id;
@@ -122,10 +137,7 @@ const useStore = create<RFState>((set, get) => ({
       nd.type = nd.data.type;
 
       if (debug && debug.open && debug.callback) {
-        nd.data['debug'] = (prompt: any) => {
-          const controlEvent = parsePrompt2ControlEvent(prompt)
-          debug.callback(controlEvent)
-        }
+        nd.data['debug'] = (prompt: any) => debugRun(nd.id, prompt, debug, get().debugStatus);
       }
       return nd
     })]
@@ -185,10 +197,7 @@ const useStore = create<RFState>((set, get) => ({
 
     const debug = get().debug;
     if (debug && debug.open && debug.callback) {
-      newNode.data['debug'] = (prompt: any) => {
-        const controlEvent = parsePrompt2ControlEvent(prompt)
-        debug.callback(controlEvent)
-      }
+      newNode.data['debug'] = (prompt: any) => debugRun(newNode.id, prompt, debug, get().debugStatus)
     }
 
 
@@ -247,10 +256,7 @@ const useStore = create<RFState>((set, get) => ({
 
     const debug = get().debug;
     if (debug && debug.open && debug.callback) {
-      newNode.data['debug'] = (prompt: any) => {
-        const controlEvent = parsePrompt2ControlEvent(prompt)
-        debug.callback(controlEvent)
-      }
+      newNode.data['debug'] = (prompt: any) => debugRun(newNode.id, prompt, debug, get().debugStatus)
     }
 
     // console.log('addChildNode', parentNode)

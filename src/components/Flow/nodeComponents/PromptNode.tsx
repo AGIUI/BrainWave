@@ -21,6 +21,8 @@ const menuNames = {
 
 
 export type NodeData = {
+  debugInput: any;
+  debugOutput: any;
   getNodes: any;
   nodeInputId: string;
   debug: any;
@@ -302,16 +304,9 @@ function Main({ id, data, selected }: NodeProps<NodeData>) {
   const createNode = () => {
     const node = [];
 
-    let allNodes: any[] = [];
-    if (data.getNodes) allNodes = [...data.getNodes(id)]
-
-    const nodeOpts = Array.from(allNodes, (node, i) => {
-      return {
-        value: node.id, label: node.type
-      }
-    });
-
-    let selectNodeValue = nodeInputId || nodeOpts[0].value
+    let nodeOpts: any[] = [];
+    if (data.getNodes) nodeOpts = [...data.getNodes(id)]
+    let selectNodeValue = input === "nodeInput" ? (nodeInputId || nodeOpts[0].value) : null
     // console.log('selectNodeValue',selectNodeValue,nodeInputId,nodeOpts[0],data)
 
     node.push(createTextAndInput(menuNames.userInput, text, input, nodeOpts, selectNodeValue, updateTextAndInput))
@@ -320,7 +315,7 @@ function Main({ id, data, selected }: NodeProps<NodeData>) {
     node.push(createOutput(menuNames.output, 'output', output, outputs, updateOutput))
 
 
-    node.push(createDebug(id, "", '', (event: any) => {
+    node.push(createDebug(id, data.debugInput, data.debugOutput, (event: any) => {
       if (event.key == 'input') { }
     }, () => data.debug ? data.debug(data) : '', {}))
 

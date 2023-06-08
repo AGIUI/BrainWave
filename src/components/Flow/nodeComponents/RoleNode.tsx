@@ -7,6 +7,8 @@ import { roleAvatars } from '../Workflow'
 import { createDebug, createText } from './Base'
 
 export type NodeData = {
+    debugInput: any;
+    debugOutput: any;
     role: any;
     debug: any;
     text: string,
@@ -39,7 +41,7 @@ const createType = (type: string, agents: any, onChange: any) => {
     }}>
         <Space>
             {label}
-            <DownOutlined rev={undefined} />
+            <DownOutlined />
         </Space>
 
     </Dropdown>
@@ -90,7 +92,7 @@ function RoleNode({ id, data, selected }: NodeProps<NodeData>) {
             return {
                 label: avatar.label,
                 key: avatar.key,
-                icon: <UserOutlined rev={undefined} />,
+                icon: <UserOutlined />,
                 disabled: !!avatar.disabled,
                 checked: avatar.key === role.avatar
             }
@@ -139,7 +141,7 @@ function RoleNode({ id, data, selected }: NodeProps<NodeData>) {
                 </Space> */}
 
             {
-                createDebug(id, "", '', (event: any) => {
+                createDebug(id, data.debugInput, data.debugOutput, (event: any) => {
                     if (event.key == 'input') { }
                 }, () => data.debug ? data.debug(data) : '', {})
             }

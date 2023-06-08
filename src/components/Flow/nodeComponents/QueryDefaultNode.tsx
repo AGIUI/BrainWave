@@ -19,6 +19,8 @@ const menuNames = {
 }
 
 export type NodeData = {
+  debugInput:any;
+  debugOutput:any;
   debug: any;
   queryObj: any,
   type: string,
@@ -141,7 +143,7 @@ function QueryDefaultNode({ id, data, selected }: NodeProps<NodeData>) {
 
     const node = [createUI(queryObj, delay, delayFormat, updateQueryObj)];
 
-    node.push(createDebug(id, "", '', (event: any) => {
+    node.push(createDebug(id, data.debugInput, data.debugOutput, (event: any) => {
       if (event.key == 'input') { }
     }, () => data.debug ? data.debug(data) : '', {}))
 
