@@ -13,6 +13,7 @@ import { create } from 'zustand';
 import { nanoid } from 'nanoid/non-secure';
 
 import { defaultNode, comboOptions, _DEFAULTCOMBO, parsePrompt2ControlEvent } from './Workflow'
+import { node } from 'prop-types';
 
 
 export type RFState = {
@@ -33,6 +34,35 @@ export type RFState = {
   addNode: any
 };
 
+const createId = (type: string, id: string) => `${type}_${id}`.toLocaleUpperCase()
+
+const getNodes = (currentId: string, nodes: any) => {
+  const nodeOpts = Array.from(nodes, (node: any, i) => {
+    return {
+      value: node.id,
+      label: node.type + '_' + node.id,
+      id: node.id
+    }
+  }).filter((n: any) => n.id != currentId)
+  return nodeOpts
+}
+
+const onChangeForNodes = (event: any, getNodes: any) => {
+  const nodes = [];
+  for (const node of getNodes) {
+    if (node.id === event.id) {
+      nodes.push({
+        ...node, data: {
+          ...node.data, ...event.data
+        },
+        draggable: !!event.data.draggable
+      })
+    } else {
+      nodes.push(node)
+    }
+  }
+  return nodes
+}
 
 /**
  * 默认的节点
@@ -80,24 +110,9 @@ const useStore = create<RFState>((set, get) => ({
       nd.data = {
         ...defaultNode,
         ...nd.data,
-        getNodes:()=>get().nodes,
+        getNodes: (currentId: string) => getNodes(currentId, get().nodes),
         onChange: (e: any) => {
-          // console.log('store-onchange', e)
-          const nodes = [];
-          for (const node of get().nodes) {
-            if (node.id === e.id) {
-              nodes.push({
-                ...node,
-                data: {
-                  ...node.data,
-                  ...e.data
-                },
-                draggable: !!e.data.draggable
-              })
-            } else {
-              nodes.push(node)
-            }
-          }
+          const nodes = onChangeForNodes(e, get().nodes);
           set({
             nodes
           });
@@ -130,7 +145,7 @@ const useStore = create<RFState>((set, get) => ({
       debug,
       tag,
       comboOptions
-    }), 800)
+    }), 200)
 
   },
   onNodesChange: (changes: any) => {
@@ -151,31 +166,18 @@ const useStore = create<RFState>((set, get) => ({
     if (nodeType == 'role' && get().nodes.filter((n: any) => n.type == nodeType).length > 0) return
 
     const newNode: any = {
-      id: nanoid(),
+      id: createId(nodeType, nanoid()),
       type: nodeType,
       data: {
         ...defaultNode,
         type: dataType,
-        getNodes:()=>get().nodes,
+        getNodes: (currentId: string) => getNodes(currentId, get().nodes),
         onChange: (e: any) => {
-          // console.log('store-onchange', e)
-          const nodes = [];
-          for (const node of get().nodes) {
-            if (node.id === e.id) {
-              nodes.push({
-                ...node, data: {
-                  ...node.data, ...e.data
-                },
-                draggable: !!e.data.draggable
-              })
-            } else {
-              nodes.push(node)
-            }
-          }
+          const nodes = onChangeForNodes(e, get().nodes);
           set({
             nodes
           });
-        }
+        },
       },
       position,
       deletable: true,
@@ -199,10 +201,10 @@ const useStore = create<RFState>((set, get) => ({
 
     // source 
     const edges = get().edges.filter(e => e.source != source && e.target != target)
-    console.log(edges)
+    // console.log(edges)
 
     const newEdge = {
-      id: nanoid(),
+      id: createId('edge', nanoid()),
       source,
       target,
       type: 'straight',
@@ -226,30 +228,17 @@ const useStore = create<RFState>((set, get) => ({
     // 可根据 parentNode 判断下一个节点类型
 
     const newNode: any = {
-      id: nanoid(),
+      id: createId('prompt', nanoid()),
       type: 'prompt',
       data: {
         ...defaultNode,
-        getNodes:()=>get().nodes,
+        getNodes: (currentId: string) => getNodes(currentId, get().nodes),
         onChange: (e: any) => {
-          // console.log('store-onchange', e)
-          const nodes = [];
-          for (const node of get().nodes) {
-            if (node.id === e.id) {
-              nodes.push({
-                ...node, data: {
-                  ...node.data, ...e.data
-                },
-                draggable: !!e.data.draggable
-              })
-            } else {
-              nodes.push(node)
-            }
-          }
+          const nodes = onChangeForNodes(e, get().nodes);
           set({
             nodes
           });
-        }
+        },
       },
       position,
       // parentNode: parentNode.id,
@@ -266,7 +255,7 @@ const useStore = create<RFState>((set, get) => ({
 
     // console.log('addChildNode', parentNode)
     const newEdge = {
-      id: nanoid(),
+      id: createId('edge', nanoid()),
       source: parentNode.id,
       target: newNode.id,
       type: 'straight',

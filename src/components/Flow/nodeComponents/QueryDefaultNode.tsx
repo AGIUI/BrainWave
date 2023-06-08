@@ -2,10 +2,10 @@ import React from 'react'
 import { Handle, NodeProps, Position } from 'reactflow';
 import { Input, Card, Select, Radio, InputNumber, Slider, Dropdown, Divider, Space, Button } from 'antd';
 import { DownOutlined } from '@ant-design/icons';
-import type { MenuProps } from 'antd';
-
-const { TextArea } = Input;
+import type { MenuProps } from 'antd'; 
 const { Option } = Select;
+
+import {createDebug} from './Base'
 
 const menuNames = {
   title: '进入网页',
@@ -141,10 +141,9 @@ function QueryDefaultNode({ id, data, selected }: NodeProps<NodeData>) {
 
     const node = [createUI(queryObj, delay, delayFormat, updateQueryObj)];
 
-    if (data.debug) {
-      node.push(<Divider dashed />)
-      node.push(<Button onClick={(e) => data.debug ? data.debug(data) : ''} >{menuNames.debug}</Button>)
-    }
+    node.push(createDebug(id, "", '', (event: any) => {
+      if (event.key == 'input') { }
+    }, () => data.debug ? data.debug(data) : '', {}))
 
     return <Card
       key={id}
