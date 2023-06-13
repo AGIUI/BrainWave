@@ -27,6 +27,7 @@ import useStore, { RFState } from './store';
 
 import BWEdge from './edges/BWEdge';
 
+import i18n from "i18next";
 import { i18nInit } from "./locales/i18nConfig"
 
 // we need to import the React Flow styles to make it work
@@ -65,6 +66,7 @@ const selector = (state: RFState) => ({
   defaultNode: state.defaultNode,
   nodes: state.nodes,
   edges: state.edges,
+  initComboOptions: state.initComboOptions,
   onComboOptionsChange: state.onComboOptionsChange,
   onTagChange: state.onTagChange,
   onNodesChange: state.onNodesChange,
@@ -95,6 +97,7 @@ function Flow(props: any) {
     defaultNode,
     nodes,
     edges,
+    initComboOptions,
     onTagChange,
     onComboOptionsChange,
     onNodesChange,
@@ -104,7 +107,7 @@ function Flow(props: any) {
     addChildNode,
     addNode
   } = useStore(selector, shallow);
-
+  console.log("comboOptions", comboOptions)
   const connectingNodeId = useRef<string | null>(null);
   const store = useStoreApi();
   const { project } = useReactFlow();
@@ -491,7 +494,7 @@ function Flow(props: any) {
 
   const onInit = (reactFlowInstance: ReactFlowInstance) => {
     console.log('flow - - - - onInit')
-    i18nInit()
+    i18nInit();
   }
 
   const onChange = () => {
@@ -551,17 +554,16 @@ function Flow(props: any) {
             padding: 10
           }}
         >
-          <Collapse ghost size="small">
-            <Panel0 header="菜单" key="1">
+          <Collapse ghost size="small" onChange={()=>initComboOptions()}>
+            <Panel0 header={i18n.t('menu')} key="1">
               <Space direction="horizontal" style={{ width: '100%' }} size={"small"}>
-                <span style={{ fontWeight: "bold" }}>工作流名称</span>
-                <Input placeholder="输入名称..."
-                  name={"标题"}
+                <span style={{ fontWeight: "bold" }}>{i18n.t("workflowName")}</span>
+                <Input placeholder={i18n.t("inputTextPlaceholder")?.toString()}
                   value={tag}
                   onChange={(e: any) => onTagChange(e.target.value)}
                 />
               </Space>
-              <p style={{ fontWeight: "bold" }}>设置选项</p>
+              <p style={{ fontWeight: "bold" }}>{i18n.t("comboSetup")}</p>
               <Checkbox.Group
                 options={comboOptions.filter((c: any) => !c.disabled)}
                 value={
@@ -572,28 +574,27 @@ function Flow(props: any) {
               />
               <Divider dashed />
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <Button onClick={() => openMyCombo()} style={{ marginRight: '10px' }}>导入</Button>
-                <Button onClick={() => download()} style={{ marginRight: '10px' }}>下载</Button>
+                <Button onClick={() => openMyCombo()} style={{ marginRight: '10px' }}>{i18n.t("importCombo")}</Button>
+                <Button onClick={() => download()} style={{ marginRight: '10px' }}>{i18n.t("exportCombo")}</Button>
                 {deleteCallback ? <Popconfirm
                   placement="bottomRight"
-                  title={'确定删除？'}
+                  title={i18n.t("askDelete")}
                   onConfirm={() => deleteMyCombo(id)}
-
-                  okText="是的"
-                  cancelText="取消"
+                  okText={i18n.t("deleteYes")}
+                  cancelText={i18n.t("deleteNo")}
                   zIndex={100000000}
                 >
                   <Button danger
                     style={{ marginRight: '10px' }}
                   >
-                    删除
+                    {i18n.t("deleteBtn")}
                   </Button>
 
                 </Popconfirm> : ''}
 
 
                 {saveCallback ?
-                  <Button type={"primary"} onClick={() => save()}>保存</Button> : ''}
+                  <Button type={"primary"} onClick={() => save()}>{i18n.t("save")}</Button> : ''}
               </div>
             </Panel0>
           </Collapse>

@@ -17,6 +17,7 @@ import { node } from 'prop-types';
 
 
 export type RFState = {
+  initComboOptions: any;
   debugStatus: any;
   defaultNode: any;
   id: string;
@@ -79,7 +80,7 @@ const _VERVISON = '0.1.0',
  * 默认的节点
  */
 const useStore = create<RFState>((set, get) => ({
-  comboOptions: comboOptions(),
+  comboOptions: [],
   id: '',
   debug: { open: false },
   tag: 'combo',
@@ -96,6 +97,11 @@ const useStore = create<RFState>((set, get) => ({
   },
   nodes: [],
   edges: [],
+  initComboOptions:(opts:any)=>{
+    set({
+      comboOptions:comboOptions()
+    })
+  },
   onComboOptionsChange: (changes: any) => {
     let comboOptions = get().comboOptions;
     comboOptions = Array.from(comboOptions, (c: any) => {

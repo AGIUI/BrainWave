@@ -29,3 +29,7 @@ a {
     border: 2px solid white;
     border-radius: 100%;
 }
+
+.react-flow__attribution {
+    display: none;
+}

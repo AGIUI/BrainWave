@@ -1,6 +1,22 @@
 {
 
     "component": "组件",
+    "menu": "菜单",
+    "workflowName": "工作流名称",
+    "comboSetup": "设置选项",
+    "importCombo": "导入",
+    "exportCombo": "下载",
+    "deleteBtn": "删除",
+    "askDelete": "确定删除？",
+    "deleteYes": "是的",
+    "deleteNo": "取消",
+    "save": "保存",
+
+    "openPromptsCombo": "开启Prompts Combo",
+    "showInChatOption": "作为对话流选项",
+    "contextMenusOption": "作为右键菜单选项",
+    "homeOption": "首页",
+    "infiniteLoopOption": "无限循环",
 
     "apiNodeTitle": "API调用",
     "url": "URL",

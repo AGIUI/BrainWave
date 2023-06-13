@@ -1,6 +1,22 @@
 {
 
     "component": "Component",
+    "menu": "Menu",
+    "workflowName": "Workflow Name",
+    "comboSetup": "Combo Setup",
+    "importCombo": "Import",
+    "exportCombo": "Download",
+    "deleteBtn": "Delete",
+    "askDelete": "Are you sure you want to delete?",
+    "deleteYes": "Yes",
+    "deleteNo": "Cancel",
+    "save": "Save",
+
+    "openPromptsCombo": "Open Prompts Combo",
+    "showInChatOption": "As a conversation flow option",
+    "contextMenusOption": "As a right-click menu option",
+    "homeOption": "Homepage",
+    "infiniteLoopOption": "Infinite Loop Option",
 
     "apiNodeTitle": "API Call",
     "url": "URL",
