@@ -190,28 +190,51 @@ const workflow = () => ({
     ]
 })
 
-const comboOptions = () => [
-    {
-        label: i18n.t('showInChatOption'),
-        value: 'showInChat',
-    },
-    {
-        label: i18n.t('contextMenusOption'),
-        value: 'contextMenus',
-    },
-    {
-        label: i18n.t('homeOption'),
-        value: 'home',
-        disabled: true
-    },
-    {
-        label: i18n.t('infiniteLoopOption'),
-        value: 'infinite',
-        disabled: true
-    }
-];
+const comboOptions = () => {
+    // console.log(i18n,1,i18n.t('showInChatOption'))
+    return [
+        {
+            label: i18n.t('showInChatOption'),
+            value: 'showInChat',
+        },
+        {
+            label: i18n.t('contextMenusOption'),
+            value: 'contextMenus',
+            children:
+                // contexts 上下文
+                Array.from([
+                    "all", "page",
+                    "frame",
+                    "selection","pdf",
+                    "link", "editable",
+                    "image", "video", "audio",
+                    "launcher", "browser_action",
+                    "page_action", "action"
+                ], m => {
+                    return {
+                        label: m,
+                        value: m,
+                        checked: m === 'page'
+                    }
+                })
+        },
+        {
+            label: i18n.t('homeOption'),
+            value: 'home',
+            disabled: true
+        },
+        {
+            label: i18n.t('infiniteLoopOption'),
+            value: 'infinite',
+            disabled: true
+        }
+    ]
+};
 
 const defaultNode = () => ({
+    id: "",
+    nextId: "",
+    nodeInputId: "",
     text: '',
     url: '',
     api: {
@@ -239,7 +262,6 @@ const defaultNode = () => ({
         protocol: 'https://',
         content: 'bindCurrentPage',//给read使用
         action: 'default', // 网页跳转 default、模拟点击click 、输入input、读取read
-
     },
     temperature: 0.6,
     model: 'ChatGPT',

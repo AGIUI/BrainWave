@@ -3,7 +3,7 @@ import { initReactI18next } from "react-i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 
 import en from "./en.json";
-import zh from "./en.json";
+import zh from "./zh.json";
 
 const resources = {
   en: {
@@ -14,7 +14,8 @@ const resources = {
   },
 };
 
-export const i18nInit=()=> i18n
+export const i18nInit=()=>{
+  i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
@@ -26,3 +27,4 @@ export const i18nInit=()=> i18n
       escapeValue: false, // 不需要对翻译文本进行转义
     },
   }); 
+}

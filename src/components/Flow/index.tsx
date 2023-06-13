@@ -15,7 +15,7 @@ import ReactFlow, {
 } from 'reactflow';
 import { shallow } from 'zustand/shallow';
 
-import { Button, Input, Checkbox, Card, Divider, Collapse, Popconfirm, Space } from 'antd';
+import { Button, Input, Checkbox, Card, Divider, Collapse, Popconfirm, Space, Spin } from 'antd';
 
 const { Panel: Panel0 } = Collapse;
 
@@ -33,7 +33,7 @@ import { i18nInit } from "./locales/i18nConfig"
 // we need to import the React Flow styles to make it work
 import 'reactflow/dist/style.css';
 
-import { _DEFAULTCOMBO } from './Workflow';
+import { _DEFAULTCOMBO, defaultNode } from './Workflow';
 
 import getNodes from './nodeComponents/index';
 
@@ -66,7 +66,7 @@ const selector = (state: RFState) => ({
   defaultNode: state.defaultNode,
   nodes: state.nodes,
   edges: state.edges,
-  initComboOptions: state.initComboOptions,
+  initComboOptions: state.init,
   onComboOptionsChange: state.onComboOptionsChange,
   onTagChange: state.onTagChange,
   onNodesChange: state.onNodesChange,
@@ -107,7 +107,7 @@ function Flow(props: any) {
     addChildNode,
     addNode
   } = useStore(selector, shallow);
-  console.log("comboOptions", comboOptions)
+  // console.log("comboOptions", comboOptions)
   const connectingNodeId = useRef<string | null>(null);
   const store = useStoreApi();
   const { project } = useReactFlow();
@@ -224,7 +224,7 @@ function Flow(props: any) {
       const id = nodes[0].id.match('root_') ? 'root' : nodes[0].id
       workflow[id] = nodes[0].data
     }
-    console.log(nodes, edges)
+    // console.log(nodes, edges)
     for (const edge of edges) {
       let { source, target } = edge;
       source = source.match('root_') ? 'root' : source;
@@ -247,7 +247,7 @@ function Flow(props: any) {
       }
     }
     const items: any = [];
-    console.log(workflow)
+    // console.log(workflow)
     // 按顺序从到尾
     const getItems = (id: string, callback: any) => {
       if (workflow[id]) {
@@ -281,11 +281,44 @@ function Flow(props: any) {
         };
 
         for (let index = 0; index < items.length; index++) {
-          const prompt = items[index];
-          prompt.role = { ...rolePrompt.role };
-          delete prompt.onChange;
-          delete prompt.getNodes;
-          delete prompt.opts;
+
+          const prompt = {
+            id: items[index].id,
+            nextId: items[index].nextId,
+            nodeInputId: items[index].nodeInputId,
+            role: { ...rolePrompt.role },
+            text: items[index].text,
+            url: items[index].url,
+            api: items[index].api,
+            queryObj: items[index].queryObj,
+            temperature: items[index].temperature,
+            model: items[index].model,
+            input: items[index].input,
+            userInput: items[index].userInput,
+            translate: items[index].translate,
+            output: items[index].output,
+            type: items[index].type,
+          }
+
+          // 针对prompt的数据进行处理，只保留有用的
+          if ([
+            "queryRead",
+            "queryDefault",
+            "queryClick",
+            "queryInput"
+          ].includes(prompt.type)) {
+            delete prompt.api
+          }
+          if (prompt.type == "prompt") {
+            delete prompt.api;
+            delete prompt.queryObj;
+          }
+
+          if (prompt.type == "api") {
+            delete prompt.queryObj;
+          }
+
+
 
           if (prompt.type !== 'role') {
             combo.combo++;
@@ -299,8 +332,15 @@ function Flow(props: any) {
 
         // interfaces
         combo.interfaces = Array.from(comboOptions, (c: any) => {
-          if (c.checked) return c.value
-        }).filter(f => f)
+          if (c.children && c.checked) {
+            // 有子级的，需要拼接
+            return Array.from(c.children, (child: any) => child.checked && `${c.value}-${child.value}`)
+
+          };
+
+          if (c.checked) return c.value;
+
+        }).flat().filter(f => f)
         // console.log(combo)
         res(combo)
       })
@@ -379,7 +419,6 @@ function Flow(props: any) {
       for (let index = 0; index < prompts.length; index++) {
         const key = `prompt${index > 0 ? index + 1 : ''}`;
         comboNew[key] = prompts[index];
-
       }
       // ----- 如果没有role，则在第一个新加一个role节点
       // console.log('!!!newCombo', JSON.stringify(comboNew,null,2))
@@ -463,11 +502,7 @@ function Flow(props: any) {
     input.click();
   }
 
-  // if (typeof (window) !== 'undefined') {
-  //   var timer = setTimeout(function () {
-
-  //   }, 200);
-  // }
+  const [loading, setLoading] = React.useState(true)
 
   const onSave = useCallback(() => {
     if (reactFlowInstance) {
@@ -503,14 +538,33 @@ function Flow(props: any) {
 
   useEffect(() => {
     if (isNew) {
-      newWorkflow()
+      setTimeout(() => newWorkflow(), loading ? 500 : 200)
     } else {
-      loadData && load(loadData, debug)
+      setTimeout(() => loadData && load(loadData, debug), loading ? 1000 : 200)
     }
+    setTimeout(() => {
+      setLoading(false)
+    }, 1500)
   }, [loadData, isNew, debug])
 
 
   // console.log('loadData',loadData)
+  // combo 选项的子选项
+  const comboChildren = Array.from(comboOptions, (copt: any) => {
+    if (copt.children && copt.checked) {
+      return <>
+        <p>{copt.label}</p>
+        <Checkbox.Group
+          options={copt.children.filter((c: any) => !c.disabled)}
+          value={
+            Array.from(copt.children,
+              (c: any) => c.checked ? c.value : null)
+              .filter(f => f)}
+          onChange={(e: any) => onComboOptionsChange(1, [copt.value, ...e])}
+        />
+      </>
+    }
+  })
 
 
   return (
@@ -554,7 +608,7 @@ function Flow(props: any) {
             padding: 10
           }}
         >
-          <Collapse ghost size="small" onChange={()=>initComboOptions()}>
+          <Collapse ghost size="small" >
             <Panel0 header={i18n.t('menu')} key="1">
               <Space direction="horizontal" style={{ width: '100%' }} size={"small"}>
                 <span style={{ fontWeight: "bold" }}>{i18n.t("workflowName")}</span>
@@ -570,8 +624,11 @@ function Flow(props: any) {
                   Array.from(comboOptions,
                     (c: any) => c.checked ? c.value : null)
                     .filter(f => f)}
-                onChange={onComboOptionsChange}
+                onChange={(e) => onComboOptionsChange(0, e)}
               />
+              {
+                comboChildren
+              }
               <Divider dashed />
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                 <Button onClick={() => openMyCombo()} style={{ marginRight: '10px' }}>{i18n.t("importCombo")}</Button>
@@ -600,12 +657,18 @@ function Flow(props: any) {
           </Collapse>
         </Card>
       </Panel>
+      <div className="loading" style={{
+        display: loading ? 'flex' : 'none'
+      }}>
+        <Spin />
+      </div>
     </ReactFlow>
   );
 }
 
 export default (props: any) => {
   const { debug, loadData, isNew, saveCallback, deleteCallback, exportData } = props;
+
   return (<ReactFlowProvider >
     <Flow
       debug={debug}
@@ -614,6 +677,7 @@ export default (props: any) => {
       exportData={exportData}
       saveCallback={saveCallback}
       deleteCallback={deleteCallback} />
+
   </ReactFlowProvider>)
 };
 
