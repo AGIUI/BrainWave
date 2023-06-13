@@ -18,7 +18,6 @@ import { shallow } from 'zustand/shallow';
 import { Button, Input, Checkbox, Card, Divider, Collapse, Popconfirm, Space } from 'antd';
 
 const { Panel: Panel0 } = Collapse;
-const { TextArea } = Input;
 
 import Sidebar from './Sidebar'
 
@@ -28,25 +27,25 @@ import useStore, { RFState } from './store';
 
 import BWEdge from './edges/BWEdge';
 
+import { i18nInit } from "./locales/i18nConfig"
 
 // we need to import the React Flow styles to make it work
 import 'reactflow/dist/style.css';
 
-import { _DEFAULTCOMBO } from './Workflow'
-import nodes from './nodeComponents/index';
+import { _DEFAULTCOMBO } from './Workflow';
+
+import getNodes from './nodeComponents/index';
 
 // 定义节点类型
 const nodeTypes: any = {};
 
-for (const node of nodes) {
+for (const node of getNodes()) {
   const children: any = node.children;
   for (const n of children) {
     nodeTypes[n.key] = n.component
   }
 
 }
-
-
 
 // 定义连线类型
 const edgeTypes = {
@@ -57,8 +56,7 @@ const edgeTypes = {
 const _VERVISON = '0.1.0',
   _APP = 'brainwave';
 
-_DEFAULTCOMBO.version = _VERVISON;
-_DEFAULTCOMBO.app = _APP;
+// _DEFAULTCOMBO(_APP,_VERVISON)
 
 const selector = (state: RFState) => ({
   comboOptions: state.comboOptions,
@@ -212,7 +210,7 @@ function Flow(props: any) {
   // 导出
   const exportDataToEarth: any = () => {
     const defaultCombo = {
-      ..._DEFAULTCOMBO,
+      ..._DEFAULTCOMBO(_APP, _VERVISON),
       createDate: (new Date()).getTime()
     }
 
@@ -346,7 +344,6 @@ function Flow(props: any) {
         source = 'root_' + nanoid(),
         edges = [];
 
-
       const nodePosition = (index: number) => {
         return {
           height: 597,
@@ -356,7 +353,7 @@ function Flow(props: any) {
       }
 
       // ----- 如果没有role，则在第一个新加一个role节点
-      const comboNew: any = { ..._DEFAULTCOMBO, ...combo };
+      const comboNew: any = { ..._DEFAULTCOMBO(_APP, _VERVISON), ...combo };
       const prompts = [
         {
           ...defaultNode.data,
@@ -387,12 +384,12 @@ function Flow(props: any) {
       for (let index = 0; index < comboNew.combo; index++) {
         const key = `prompt${index > 0 ? index + 1 : ''}`;
         if (comboNew[key]) {
-          const id = index == 0 ? source : key + comboNew.id;
+          const id = index == 0 ? source : comboNew[key].id;
           if (comboNew[key].type == 'role') {
             // role类型需求清空text字段
             comboNew[key].text = ""
           }
-          // console.log('comboNew[key]',comboNew[key])
+          console.log('comboNew[key] id', id)
           // node
           nodes.push({
             data: comboNew[key],
@@ -401,6 +398,13 @@ function Flow(props: any) {
             deletable: comboNew[key].type !== 'role',
             ...nodePosition(index)
           });
+          // console.log(JSON.stringify(Array.from(nodes,(n:any)=>{
+          //   return {
+          //     id:n.id,
+          //     input: n.input,
+          //     nodeInputId:n.nodeInputId
+          //   }
+          // }),null,2))
 
           // edge
           if (source != id) edges.push({
@@ -487,6 +491,7 @@ function Flow(props: any) {
 
   const onInit = (reactFlowInstance: ReactFlowInstance) => {
     console.log('flow - - - - onInit')
+    i18nInit()
   }
 
   const onChange = () => {

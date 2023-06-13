@@ -1,0 +1,87 @@
+{
+
+    "component": "Component",
+
+    "apiNodeTitle": "API Call",
+    "url": "URL",
+    "urlPlaceholder": "Please enter www.xxxx.com",
+    "method": "Method",
+    "parama": "Parameters (String)",
+    "getFromBefore": "Get text from previous node ${text}",
+    "responseType": "Response Data Type",
+    "output": "Output",
+    "outputKeyword": "Output Field",
+    "debug": "Debug",
+    "debugRun": "Run",
+    "debugParama": "Request Parameters",
+    "text": "Text",
+    "images": "Images",
+    "audio": "Audio",
+
+    "inputText": "Input",
+    "inputTextPlaceholder": "",
+    "outputText": "Output",
+    "outputTextPlaceholder": "",
+
+    "roleNodeTitle": "Role",
+    "createRole": "Create Role",
+    "guide": "你的AI员工是个拥有情感、喜恶、过往、抱负、目标、梦想与恐惧的AI机器人，就和一个真人一样。编辑这个员工将重新生成它，赋予它新的简介与小传（除非已被锁定），也可能因此改变它的言论与行为。在编辑AI员工前，请确保您可以接受因此带来的后果。",
+    "roleName": "姓名",
+    "inputRolePlaceholder": "请描述角色的特征，我是...",
+
+    "promptNodeTitle": "Prompt Engineering",
+    "userInput": "UserInput",
+    "translate": "Translate",
+    "format": "-",
+
+    "divergenceDegree": "Divergence Degree",
+    "model": "Model",
+    "default": "Default",
+    "bindWebContent": "Web Content",
+    "bindWebHTML": "Web HTML",
+    "bindWebURL": "Web URL",
+    "bindWebTitle": "Web Title",
+    "bindWebImages": "Web Images",
+    "userSelection": "User Selection",
+    "clipboard": "Clipboard",
+    "asContext": "As Context",
+    "conditional": "Conditional",
+    "prompt": "Prompt",
+    "taskDecomposition": "Task Decomposition",
+    "getWebInfoBySelector": "Get Web Info by Selector",
+    "publishToZhiShiXingQiu": "Publish to Zhi Shi Xing Qiu",
+    "highlightWebContent": "Highlight Web Content",
+    "autoClick": "Click",
+    "jsonFormat": "JSON Format",
+    "list": "List",
+    "table": "Table",
+    "markdownFormat": "Markdown Format",
+    "chinese": "Chinese",
+    "english": "English",
+    "extractStructuredData": "Extract Structured Data",
+
+    "ifelse": "If else",
+    "for": "For",
+
+    "webAgent": "Web Proxy",
+
+    "queryDefaultNodeTitle": "Enter Web Page",
+    "delay": "Delay",
+    "delayPlaceholder": "Enter Time",
+    "ms": "ms",
+    "s": "s",
+
+    "queryClickNodeTitle": "Simulate click event",
+    "selectQuery": "SelectQuery",
+
+    "queryReadNodeTitle": "Content Reading",
+    "content": "Get Webpage Content",
+    "queryReadPlaceholder": "Leave blank to get the entire webpage by default",
+
+    "queryInputNodeTitle": "Text Input",
+    "queryInputText": "Text Source",
+    "nodeInputLabel": "From Node",
+    "userInputLabel": "From User Input"
+
+
+}

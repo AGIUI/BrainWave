@@ -72,13 +72,14 @@ const debugRun = (id: string, prompt: any, debug: any, onChange: any) => {
   debug.callback(controlEvent)
 }
 
-
+const _VERVISON = '0.1.0',
+  _APP = 'brainwave';
 
 /**
  * 默认的节点
  */
 const useStore = create<RFState>((set, get) => ({
-  comboOptions,
+  comboOptions: comboOptions(),
   id: '',
   debug: { open: false },
   tag: 'combo',
@@ -86,8 +87,8 @@ const useStore = create<RFState>((set, get) => ({
     id: 'root',
     type: 'role',
     data: {
-      ...defaultNode,
-      role: { ..._DEFAULTCOMBO.role },
+      ...defaultNode(),
+      role: { ..._DEFAULTCOMBO(_APP, _VERVISON).role },
       type: 'role',
     },
     position: { x: 0, y: 0 },
@@ -123,7 +124,7 @@ const useStore = create<RFState>((set, get) => ({
 
     const nodes = [...Array.from(ns, (nd: any) => {
       nd.data = {
-        ...defaultNode,
+        ...defaultNode(),
         ...nd.data,
         getNodes: (currentId: string) => getNodes(currentId, get().nodes),
         onChange: (e: any) => {
@@ -181,7 +182,7 @@ const useStore = create<RFState>((set, get) => ({
       id: createId(nodeType, nanoid()),
       type: nodeType,
       data: {
-        ...defaultNode,
+        ...defaultNode(),
         type: dataType,
         getNodes: (currentId: string) => getNodes(currentId, get().nodes),
         onChange: (e: any) => {
@@ -240,7 +241,7 @@ const useStore = create<RFState>((set, get) => ({
       id: createId('prompt', nanoid()),
       type: 'prompt',
       data: {
-        ...defaultNode,
+        ...defaultNode(),
         getNodes: (currentId: string) => getNodes(currentId, get().nodes),
         onChange: (e: any) => {
           const nodes = onChangeForNodes(e, get().nodes);
