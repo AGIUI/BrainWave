@@ -29,16 +29,17 @@ const nodeStyle = {
     borderRadius: '12px',
 };
 
-const contextMenus: MenuProps['items'] = [
-    {
-        label: i18n.t('debug'),
-        key: 'debug',
-    }
-];
-
 
 function Main({ id, data, selected }: NodeProps<NodeData>) {
-    i18nInit()
+    i18nInit();
+
+    const contextMenus: MenuProps['items'] = [
+        {
+            label: i18n.t('debug'),
+            key: 'debug',
+        }
+    ];
+    
 
     const [api, setApi] = React.useState(data.api)
 

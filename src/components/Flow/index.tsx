@@ -266,6 +266,7 @@ function Flow(props: any) {
     return new Promise((res, rej) => {
       getItems('root', (result: any) => {
         console.log('exportDataToEarth - - ', result)
+
         const items = JSON.parse(JSON.stringify(result));
 
         // role节点赋予全部节点的role字段
@@ -290,6 +291,7 @@ function Flow(props: any) {
             text: items[index].text,
             url: items[index].url,
             api: items[index].api,
+            file: items[index].file,
             queryObj: items[index].queryObj,
             temperature: items[index].temperature,
             model: items[index].model,
@@ -307,18 +309,24 @@ function Flow(props: any) {
             "queryClick",
             "queryInput"
           ].includes(prompt.type)) {
-            delete prompt.api
+            delete prompt.api;
+            delete prompt.file;
           }
           if (prompt.type == "prompt") {
             delete prompt.api;
             delete prompt.queryObj;
+            delete prompt.file;
           }
 
           if (prompt.type == "api") {
             delete prompt.queryObj;
+            delete prompt.file;
           }
 
-
+          if (prompt.type == "file") {
+            delete prompt.api;
+            delete prompt.queryObj;
+          }
 
           if (prompt.type !== 'role') {
             combo.combo++;
@@ -618,17 +626,19 @@ function Flow(props: any) {
                 />
               </Space>
               <p style={{ fontWeight: "bold" }}>{i18n.t("comboSetup")}</p>
-              <Checkbox.Group
-                options={comboOptions.filter((c: any) => !c.disabled)}
-                value={
-                  Array.from(comboOptions,
-                    (c: any) => c.checked ? c.value : null)
-                    .filter(f => f)}
-                onChange={(e) => onComboOptionsChange(0, e)}
-              />
-              {
-                comboChildren
-              }
+              <div style={{ maxWidth: 300 }}>
+                <Checkbox.Group
+                  options={comboOptions.filter((c: any) => !c.disabled)}
+                  value={
+                    Array.from(comboOptions,
+                      (c: any) => c.checked ? c.value : null)
+                      .filter(f => f)}
+                  onChange={(e) => onComboOptionsChange(0, e)}
+                />
+                {
+                  comboChildren
+                }
+              </div>
               <Divider dashed />
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                 <Button onClick={() => openMyCombo()} style={{ marginRight: '10px' }}>{i18n.t("importCombo")}</Button>
