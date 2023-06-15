@@ -39,7 +39,7 @@ function Main({ id, data, selected }: NodeProps<NodeData>) {
             key: 'debug',
         }
     ];
-    
+
 
     const [api, setApi] = React.useState(data.api)
 
@@ -108,14 +108,14 @@ function Main({ id, data, selected }: NodeProps<NodeData>) {
     let nodeOpts: any[] = [];
     if (data.getNodes) nodeOpts = [...data.getNodes(id)];
 
-    const { protocol, url, responseType } = data.api;
+    let { protocol, url, responseType, extract } = data.api;
     const key = 'api';
-
-    const extract = {
-        ...(data.api.init.extract || {
-            key: '', type: ''
-        })
-    }
+    if (!extract) extract = data.api.init.responseExtract
+    // const extract = {
+    //     ...(data.api.init.extract || {
+    //         key: '', type: ''
+    //     })
+    // }
 
     return (
         <Dropdown menu={{ items: contextMenus, onClick: () => data.debug ? data.debug(data) : '' }} trigger={['contextMenu']}>
@@ -221,7 +221,7 @@ function Main({ id, data, selected }: NodeProps<NodeData>) {
                         }
 
                         {
-                            createSelect(i18n.t('output'), extract.type || 'text', [
+                            createSelect(i18n.t('output'), extract?.type || 'text', [
                                 { value: 'text', label: i18n.t('text') },
                                 { value: 'images', label: i18n.t('images') },
                                 { value: 'json', label: 'JSON', disabled: true },
@@ -233,9 +233,13 @@ function Main({ id, data, selected }: NodeProps<NodeData>) {
                                     init: {
                                         ...data.api.init,
                                         extract: {
-                                            ...extract,
+                                            ...extract || {},
                                             type: e.data
                                         }
+                                    },
+                                    extract: {
+                                        ...extract || {},
+                                        type: e.data
                                     }
                                 };
                                 onChange({
@@ -253,9 +257,13 @@ function Main({ id, data, selected }: NodeProps<NodeData>) {
                                     init: {
                                         ...data.api.init,
                                         extract: {
-                                            ...extract,
+                                            ...extract || {},
                                             key: e.data
                                         }
+                                    },
+                                    extract: {
+                                        ...extract || {},
+                                        key: e.data
                                     }
                                 };
                                 onChange({

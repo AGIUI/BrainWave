@@ -258,9 +258,14 @@ const defaultNode = () => ({
             },
             body: "{}",
             mode: 'cors',
-            cache: 'default'
+            cache: 'default',
+            responseType: 'json',
+            extract: {
+                "key": "images",
+                "type": "images"
+            },
         },
-        responseType: 'text',
+        responseType: 'json',
         extract: {
             "key": "images",
             "type": "images"
