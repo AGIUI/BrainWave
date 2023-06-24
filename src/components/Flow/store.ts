@@ -36,19 +36,23 @@ export type RFState = {
   changeChildNode: any;
   addNode: any;
   deleteNode: any;
+  cloneNode: any;
   exportData: any
 };
 
 const createId = (type: string, id: string) => `${type}_${id}`.toLocaleUpperCase()
 
-const getNodes = (currentId: string, nodes: any) => {
+const getNodes = (currentId: string, nodes: any, edges: any) => {
+  const edge = edges.filter((e: any) => e.target == currentId)[0];
+  console.log('getNodes edge::', edge)
   const nodeOpts = Array.from(nodes, (node: any, i) => {
     return {
       value: node.id,
       label: node.id,
-      id: node.id
+      id: node.id,
+      index: edge && node.id == edge.source ? 1 : 0
     }
-  }).filter((n: any) => n.id != currentId && !n.id.match("root_"))
+  }).filter((n: any) => n.id != currentId && !n.id.match("root_")).sort((b, a) => a.index - b.index)
   return nodeOpts
 }
 
@@ -71,6 +75,9 @@ const onChangeForNodes = (event: any, getNodes: any) => {
 
 
 const debugRun = (id: string, prompt: any, combo: any, debug: any, onChange: any) => {
+  console.log('debugRun id:', id)
+  if (!prompt.id) prompt.id = id;
+
   let lastTalk = '';
   if (prompt.input == 'nodeInput') {
     // 从上一个节点获得输入
@@ -86,17 +93,22 @@ const debugRun = (id: string, prompt: any, combo: any, debug: any, onChange: any
   // 用于调试
   prompt._nodeInputTalk = lastTalk;
 
-  console.log('debug combo', combo)
-
-  for (let i = 0; i < combo.combo; i++) {
-    const prompt2 = combo[`prompt${i > 0 ? (i + 1) : ''}`];
-    if (prompt2.id == id && prompt2.role) {
-      prompt.role = prompt2.role;
-      // merged去掉
-      // delete prompt.role.merged
+  if (combo.combo > 0) {
+    for (let i = 0; i < combo.combo; i++) {
+      const prompt2 = combo[`prompt${i > 0 ? (i + 1) : ''}`];
+      if (prompt2.id == id && prompt2.role) {
+        prompt.role = prompt2.role;
+        // merged去掉
+        // delete prompt.role.merged
+      }
+      if (prompt2.id == id) {
+        prompt.merged = prompt2.merged;
+        // prompt.debugInput = prompt2.debugInput;
+      }
     }
-  }
+  };
 
+  console.log('debug combo', combo, prompt)
   // merged去掉
   // delete prompt.merged
   // delete prompt.debugInput
@@ -107,13 +119,12 @@ const debugRun = (id: string, prompt: any, combo: any, debug: any, onChange: any
 }
 
 const mergeRun = (id: string, prompt: any, onChange: any, callback: any) => {
-
+  console.log('mergeRun:', prompt)
   let merged, success = false;
   try {
     merged = JSON.parse(prompt.debugInput);
     success = true;
   } catch (error) {
-
   }
 
   let data: any = {
@@ -136,6 +147,8 @@ const mergeRun = (id: string, prompt: any, onChange: any, callback: any) => {
 
 const _VERVISON = '0.1.0',
   _APP = 'brainwave';
+
+
 
 const initRootNode = () => {
   return {
@@ -265,7 +278,10 @@ const exportData: any = (comboId: string, tag: string, comboOptions: any, edges:
           delete prompt.api;
           delete prompt.file;
         }
-        if (prompt.type == "prompt") {
+
+        if ([
+          "prompt", "promptCustom"
+        ].includes(prompt.type)) {
           delete prompt.api;
           delete prompt.queryObj;
           delete prompt.file;
@@ -373,7 +389,7 @@ const useStore = create<RFState>((set, get) => ({
       nd.data = {
         ...defaultNode(),
         ...nd.data,
-        getNodes: (currentId: string) => getNodes(currentId, get().nodes),
+        getNodes: (currentId: string) => getNodes(currentId, get().nodes, get().edges),
         onChange: (e: any) => {
           const nodes = onChangeForNodes(e, get().nodes);
           set({
@@ -394,6 +410,7 @@ const useStore = create<RFState>((set, get) => ({
         });
       }
       nd.data['delete'] = (id: string) => get().deleteNode(id);
+      nd.data['clone'] = (id: string) => get().cloneNode(id);
       if (merge && merge.callback) nd.data['merge'] = (prompt: any) => mergeRun(nd.id, prompt, nd.data.onChange, merge.callback);
 
       return nd
@@ -453,13 +470,15 @@ const useStore = create<RFState>((set, get) => ({
     // role 只能放一张
     if (nodeType == 'role' && get().nodes.filter((n: any) => n.type == nodeType).length > 0) return
 
+    const id = createId(nodeType, nanoid());
+
     const newNode: any = {
-      id: createId(nodeType, nanoid()),
+      id,
       type: nodeType,
       data: {
         ...defaultNode(),
         type: nodeType,
-        getNodes: (currentId: string) => getNodes(currentId, get().nodes),
+        getNodes: (currentId: string) => getNodes(currentId, get().nodes, get().edges),
         onChange: (e: any) => {
           const nodes = onChangeForNodes(e, get().nodes);
           set({
@@ -473,15 +492,15 @@ const useStore = create<RFState>((set, get) => ({
 
     const debug = get().debug, merge = get().merge;
 
-
     if (debug && debug.open && debug.callback) newNode.data['debug'] = (prompt: any) => {
       get().exportData().then((combo: any) => {
         debugRun(newNode.id, prompt, combo, debug, newNode.data.onChange)
       });
     }
     newNode.data['delete'] = (id: string) => get().deleteNode(id);
-    if (merge && merge.callback) newNode.data['merge'] = (prompt: any) => mergeRun(newNode.id, prompt, newNode.data.onChange, merge.callback);
+    newNode.data['clone'] = (id: string) => get().cloneNode(id);
 
+    if (merge && merge.callback) newNode.data['merge'] = (prompt: any) => mergeRun(newNode.id, prompt, newNode.data.onChange, merge.callback);
 
     set({
       nodes: [...get().nodes, newNode]
@@ -494,8 +513,10 @@ const useStore = create<RFState>((set, get) => ({
     const edges = get().edges.filter(e => e.source != source && e.target != target)
     // console.log(edges)
 
+    const id = createId('edge', nanoid());
+
     const newEdge = {
-      id: createId('edge', nanoid()),
+      id,
       source,
       target,
       type: 'straight',
@@ -518,12 +539,14 @@ const useStore = create<RFState>((set, get) => ({
 
     // 可根据 parentNode 判断下一个节点类型
 
+    const id = createId('prompt', nanoid());
+
     const newNode: any = {
-      id: createId('prompt', nanoid()),
+      id,
       type: 'prompt',
       data: {
         ...defaultNode(),
-        getNodes: (currentId: string) => getNodes(currentId, get().nodes),
+        getNodes: (currentId: string) => getNodes(currentId, get().nodes, get().edges),
         onChange: (e: any) => {
           const nodes = onChangeForNodes(e, get().nodes);
           set({
@@ -545,8 +568,10 @@ const useStore = create<RFState>((set, get) => ({
     }
 
     newNode.data['delete'] = (id: string) => get().deleteNode(id);
+    newNode.data['clone'] = (id: string) => get().cloneNode(id);
 
     if (merge && merge.callback) newNode.data['merge'] = (prompt: any) => mergeRun(newNode.id, prompt, newNode.data.onChange, merge.callback);
+
 
     // console.log('addChildNode', parentNode)
     const newEdge = {
@@ -565,16 +590,31 @@ const useStore = create<RFState>((set, get) => ({
     });
   },
   deleteNode(deletedId: any) {
-    // console.log(deletedId)
-
     const nodes = get().nodes.filter(n => n.id != deletedId);
     const edges = get().edges.filter(n => n.target != deletedId && n.source != deletedId);
-
     set({
       nodes,
       edges
     });
+  },
+  cloneNode(cloneId: any) {
+    const nodes = get().nodes.filter(n => n.id == cloneId);
 
+    if (nodes.length === 1) {
+      let node: any = nodes[0];
+      node = {
+        ...node,
+        id: createId(node.type, nanoid()),
+        position: {
+          x: node.position.x + 350,
+          y: node.position.y
+        },
+        deletable: true,
+      }
+      set({
+        nodes: [...get().nodes, node]
+      });
+    }
   },
   exportData: () => {
     const comboId = get().id,
@@ -582,7 +622,6 @@ const useStore = create<RFState>((set, get) => ({
       comboOptions = get().comboOptions,
       edges = get().edges,
       nodes = get().nodes;
-
     return exportData(comboId, tag, comboOptions, edges, nodes)
   }
 }));
