@@ -15,10 +15,9 @@ import ReactFlow, {
 } from 'reactflow';
 import { shallow } from 'zustand/shallow';
 
-import { Button, Input, Checkbox, Card, Divider, Collapse, Popconfirm, Space } from 'antd';
+import { Button, Input, Checkbox, Card, Divider, Collapse, Popconfirm, Space, Spin } from 'antd';
 
 const { Panel: Panel0 } = Collapse;
-const { TextArea } = Input;
 
 import Sidebar from './Sidebar'
 
@@ -28,25 +27,27 @@ import useStore, { RFState } from './store';
 
 import BWEdge from './edges/BWEdge';
 
+import i18n from "i18next";
+import { i18nInit } from "../../locales/i18nConfig"
 
 // we need to import the React Flow styles to make it work
 import 'reactflow/dist/style.css';
 
-import { _DEFAULTCOMBO } from './Workflow'
-import nodes from './nodeComponents/index';
+import { _DEFAULTCOMBO, defaultNode } from './Workflow';
+
+import getNodes from './nodeComponents/index';
+
 
 // 定义节点类型
 const nodeTypes: any = {};
 
-for (const node of nodes) {
+for (const node of getNodes()) {
   const children: any = node.children;
   for (const n of children) {
     nodeTypes[n.key] = n.component
   }
 
 }
-
-
 
 // 定义连线类型
 const edgeTypes = {
@@ -57,8 +58,7 @@ const edgeTypes = {
 const _VERVISON = '0.1.0',
   _APP = 'brainwave';
 
-_DEFAULTCOMBO.version = _VERVISON;
-_DEFAULTCOMBO.app = _APP;
+// _DEFAULTCOMBO(_APP,_VERVISON)
 
 const selector = (state: RFState) => ({
   comboOptions: state.comboOptions,
@@ -67,6 +67,7 @@ const selector = (state: RFState) => ({
   defaultNode: state.defaultNode,
   nodes: state.nodes,
   edges: state.edges,
+  initComboOptions: state.init,
   onComboOptionsChange: state.onComboOptionsChange,
   onTagChange: state.onTagChange,
   onNodesChange: state.onNodesChange,
@@ -74,7 +75,8 @@ const selector = (state: RFState) => ({
   newCombo: state.newCombo,
   changeChildNode: state.changeChildNode,
   addChildNode: state.addChildNode,
-  addNode: state.addNode
+  addNode: state.addNode,
+  exportData: state.exportData
 });
 
 
@@ -84,7 +86,7 @@ const defaultEdgeOptions = { style: connectionLineStyle, type: 'brainwave' };
 
 function Flow(props: any) {
 
-  const { debug, loadData, isNew, saveCallback, deleteCallback, exportData } = props;
+  const { debug, merge, loadData, isNew, saveCallback, deleteCallback, exportData } = props;
   // console.log('Flow isNew', isNew)
 
   const reactFlowInstance = useReactFlow();
@@ -97,6 +99,7 @@ function Flow(props: any) {
     defaultNode,
     nodes,
     edges,
+    initComboOptions,
     onTagChange,
     onComboOptionsChange,
     onNodesChange,
@@ -104,9 +107,10 @@ function Flow(props: any) {
     newCombo,
     changeChildNode,
     addChildNode,
-    addNode
+    addNode,
+    exportData: exportDataToEarth
   } = useStore(selector, shallow);
-
+  // console.log("comboOptions", comboOptions)
   const connectingNodeId = useRef<string | null>(null);
   const store = useStoreApi();
   const { project } = useReactFlow();
@@ -209,100 +213,6 @@ function Flow(props: any) {
 
   const variant: any = 'dots';
 
-  // 导出
-  const exportDataToEarth: any = () => {
-    const defaultCombo = {
-      ..._DEFAULTCOMBO,
-      createDate: (new Date()).getTime()
-    }
-
-    const workflow: any = {};
-    const { edges, nodes } = reactFlowInstance.toObject();
-    if (edges.length == 0 && nodes.length == 1) {
-      // 只有一个，则导出
-      const id = nodes[0].id.match('root_') ? 'root' : nodes[0].id
-      workflow[id] = nodes[0].data
-    }
-    // console.log(nodes)
-    for (const edge of edges) {
-      let { source, target } = edge;
-      source = source.match('root_') ? 'root' : source;
-      target = target.match('root_') ? 'root' : target;
-
-      const sourceNode: any = nodes.filter(node => (node.id.match('root_') ? 'root' : node.id) === source)[0];
-      const targetNode: any = nodes.filter(node => (node.id.match('root_') ? 'root' : node.id) === target)[0];
-      if (sourceNode && targetNode) {
-        workflow[source] = {
-          ...sourceNode.data,
-          type: sourceNode.type,
-          id: sourceNode.id,
-          nextId: target
-        };
-        workflow[target] = {
-          ...targetNode.data,
-          type: targetNode.type,
-          id: targetNode.id
-        };
-      }
-    }
-    const items: any = [];
-    // console.log(workflow)
-    // 按顺序从到尾
-    const getItems = (id: string, callback: any) => {
-      if (workflow[id]) {
-        items.push(workflow[id]);
-        let nextId = workflow[id].nextId;
-        if (nextId) {
-          getItems(nextId, callback)
-        } else {
-          return callback(items)
-        }
-      }
-    }
-
-    return new Promise((res, rej) => {
-      getItems('root', (result: any) => {
-        console.log('exportDataToEarth - - ', result)
-        const items = JSON.parse(JSON.stringify(result));
-
-        // role节点赋予全部节点的role字段
-        const rolePrompt = items.filter((item: any) => item.type == 'role')[0];
-
-        // 按照combo的格式输出
-        const combo: any = {
-          ...defaultCombo,
-          tag,
-          id,
-          combo: 0,
-          role: { ...rolePrompt.role }
-        };
-
-        for (let index = 0; index < items.length; index++) {
-          const prompt = items[index];
-          prompt.role = { ...rolePrompt.role };
-          delete prompt.onChange;
-          delete prompt.getNodes;
-          delete prompt.opts;
-
-          if (prompt.type !== 'role') {
-            combo.combo++;
-            if (combo.combo === 1) {
-              combo.prompt = prompt;
-            } else {
-              combo[`prompt${combo.combo}`] = prompt;
-            }
-          }
-        }
-
-        // interfaces
-        combo.interfaces = Array.from(comboOptions, (c: any) => {
-          if (c.checked) return c.value
-        }).filter(f => f)
-        // console.log(combo)
-        res(combo)
-      })
-    })
-  }
 
   if (exportData) {
     //如果父组件传来该方法
@@ -312,6 +222,7 @@ function Flow(props: any) {
   const download = () => {
     exportDataToEarth().then((combo: any) => {
       console.log('download', combo)
+
       const fileName = `${combo.tag}_${combo.id}`
       const data = [combo]
       const link = document.createElement('a');
@@ -331,7 +242,7 @@ function Flow(props: any) {
     }
   }
 
-  const load = (json: any, debug: any) => {
+  const load = (json: any, debug: any, merge: any) => {
     if (json && json.length == 1) {
 
       // 将覆盖
@@ -344,7 +255,6 @@ function Flow(props: any) {
         source = 'root_' + nanoid(),
         edges = [];
 
-
       const nodePosition = (index: number) => {
         return {
           height: 597,
@@ -354,7 +264,7 @@ function Flow(props: any) {
       }
 
       // ----- 如果没有role，则在第一个新加一个role节点
-      const comboNew: any = { ..._DEFAULTCOMBO, ...combo };
+      const comboNew: any = { ..._DEFAULTCOMBO(_APP, _VERVISON), ...combo };
       const prompts = [
         {
           ...defaultNode.data,
@@ -377,7 +287,6 @@ function Flow(props: any) {
       for (let index = 0; index < prompts.length; index++) {
         const key = `prompt${index > 0 ? index + 1 : ''}`;
         comboNew[key] = prompts[index];
-
       }
       // ----- 如果没有role，则在第一个新加一个role节点
       // console.log('!!!newCombo', JSON.stringify(comboNew,null,2))
@@ -385,12 +294,13 @@ function Flow(props: any) {
       for (let index = 0; index < comboNew.combo; index++) {
         const key = `prompt${index > 0 ? index + 1 : ''}`;
         if (comboNew[key]) {
-          const id = index == 0 ? source : key + comboNew.id;
+          const id = index == 0 ? source : comboNew[key].id;
           if (comboNew[key].type == 'role') {
             // role类型需求清空text字段
-            comboNew[key].text = ""
+            comboNew[key].text = "";
+            comboNew[key].merged = comboNew[key].role?.merged;
           }
-          // console.log('comboNew[key]',comboNew[key])
+          console.log('comboNew[key] id', id)
           // node
           nodes.push({
             data: comboNew[key],
@@ -400,6 +310,23 @@ function Flow(props: any) {
             ...nodePosition(index)
           });
 
+
+          let label = "";
+          const t = nodes.filter((node: any) => node.id == source)[0].data.type;
+          switch (t) {
+            case "role":
+              label = "role"
+              break
+            case "prompt":
+              label = nodes.filter((node: any) => node.id == source)[0].data.output;
+              break
+            case 'queryRead':
+              label=nodes.filter((node: any) => node.id == source)[0].data.queryObj.content;
+              break
+            default:
+              console.log("default");
+          }
+
           // edge
           if (source != id) edges.push({
             source,
@@ -407,7 +334,7 @@ function Flow(props: any) {
             id: source + '_' + id,
             type: 'straight',
             animated: true,
-            label: nodes.filter((node: any) => node.id == source)[0].data.output,
+            label,
             deletable: true,
           })
 
@@ -416,8 +343,8 @@ function Flow(props: any) {
         }
       }
 
-      console.log('!!!newCombo', comboNew.id, comboNew.tag, comboNew.interfaces, nodes, edges, debug)
-      newCombo(comboNew.id, comboNew.tag, comboNew.interfaces, nodes, edges, debug);
+      console.log('!!!newCombo', comboNew.id, comboNew.tag, comboNew.interfaces, nodes, edges, debug, merge)
+      newCombo(comboNew.id, comboNew.tag, comboNew.interfaces, nodes, edges, debug, merge);
 
       clearLocalStore()
 
@@ -445,7 +372,14 @@ function Flow(props: any) {
           const data: any = this.result;
           const json = JSON.parse(data);
           if (json && json.length == 1) {
-            load(json, debug)
+            // 导入的新的combo，id重设
+            setLoading(true)
+            newWorkflow();
+            setTimeout(() => {
+              json[0].id = nanoid();
+              load(json, debug, merge);
+              setLoading(false)
+            }, 1000)
           }
         }
       }
@@ -454,11 +388,7 @@ function Flow(props: any) {
     input.click();
   }
 
-  // if (typeof (window) !== 'undefined') {
-  //   var timer = setTimeout(function () {
-
-  //   }, 200);
-  // }
+  const [loading, setLoading] = React.useState(true)
 
   const onSave = useCallback(() => {
     if (reactFlowInstance) {
@@ -479,7 +409,7 @@ function Flow(props: any) {
   }, [newCombo, debug]);
 
 
-  const newWorkflow = () => newCombo(nanoid(), '', [], [defaultNode], [], debug)
+  const newWorkflow = () => newCombo(nanoid(), '', [], [defaultNode], [], debug, merge)
 
   const clearLocalStore = () => localStorage.setItem('flowKey', '{}');
 
@@ -491,20 +421,49 @@ function Flow(props: any) {
     console.log('flow - - - - onChange')
   };
 
+  const [isLoaded, setIsLoaded] = React.useState(false)
+
   useEffect(() => {
+
     if (isNew) {
-      newWorkflow()
+      setTimeout(() => newWorkflow(), loading ? 500 : 200)
     } else {
-      loadData && load(loadData, debug)
+      setTimeout(() => loadData && load(loadData, debug, merge), loading ? 1000 : 200)
     }
-  }, [loadData, isNew, debug])
+    setTimeout(() => {
+      setLoading(false)
+    }, 1500);
+
+    if (!isLoaded) {
+      i18nInit();
+      setIsLoaded(true)
+    }
+
+
+  }, [loadData, isNew, debug, isLoaded])
 
 
   // console.log('loadData',loadData)
+  // combo 选项的子选项
+  const comboChildren = Array.from(comboOptions, (copt: any) => {
+    if (copt.children && copt.checked) {
+      return <>
+        <p>{copt.label}</p>
+        <Checkbox.Group
+          options={copt.children.filter((c: any) => !c.disabled)}
+          value={
+            Array.from(copt.children,
+              (c: any) => c.checked ? c.value : null)
+              .filter(f => f)}
+          onChange={(e: any) => onComboOptionsChange(1, [copt.value, ...e])}
+        />
+      </>
+    }
+  })
+
 
 
   return (
-
     <ReactFlow
       nodes={nodes}
       edges={edges}
@@ -532,80 +491,104 @@ function Flow(props: any) {
       onChange={onChange}
     >
       <Controls style={{ display: 'flex', flexDirection: 'row' }} position={'bottom-center'} />
-      {/*<MiniMap nodeColor={nodeColor} nodeStrokeWidth={3} zoomable pannable inversePan={false} ariaLabel={null} />*/}
+      <MiniMap
+        position="bottom-left"
+        nodeColor={nodeColor}
+        nodeStrokeWidth={3}
+        zoomable
+        pannable
+        inversePan={false}
+        ariaLabel={null} />
       <Background variant={variant} />
-
-      <Panel position="top-left">
-        <Sidebar />
-      </Panel>
-      <Panel position="top-right">
-        <Card
-          bodyStyle={{
-            padding: 10
-          }}
-        >
-          <Collapse ghost size="small">
-            <Panel0 header="菜单" key="1">
-              <Space direction="horizontal" style={{ width: '100%' }} size={"small"}>
-                <span style={{ fontWeight: "bold" }}>工作流名称</span>
-                <Input placeholder="输入名称..."
-                  name={"标题"}
-                  value={tag}
-                  onChange={(e: any) => onTagChange(e.target.value)}
-                />
-              </Space>
-              <p style={{ fontWeight: "bold" }}>设置选项</p>
-              <Checkbox.Group
-                options={comboOptions.filter((c: any) => !c.disabled)}
-                value={
-                  Array.from(comboOptions,
-                    (c: any) => c.checked ? c.value : null)
-                    .filter(f => f)}
-                onChange={onComboOptionsChange}
-              />
-              <Divider dashed />
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <Button onClick={() => openMyCombo()} style={{ marginRight: '10px' }}>导入</Button>
-                <Button onClick={() => download()} style={{ marginRight: '10px' }}>下载</Button>
-                {deleteCallback ? <Popconfirm
-                  placement="bottomRight"
-                  title={'确定删除？'}
-                  onConfirm={() => deleteMyCombo(id)}
-
-                  okText="是的"
-                  cancelText="取消"
-                  zIndex={100000000}
-                >
-                  <Button danger
-                    style={{ marginRight: '10px' }}
+      {isLoaded ? <>
+        <Panel position="top-left">
+          <Sidebar />
+        </Panel>
+        <Panel position="top-right">
+          <Card
+            bodyStyle={{
+              padding: 10
+            }}
+          >
+            <Collapse ghost size="small" >
+              <Panel0 header={i18n.t('menu')} key="1">
+                <Space direction="horizontal" style={{ width: '100%' }} size={"small"}>
+                  <span style={{ fontWeight: "bold" }}>{i18n.t("workflowName")}</span>
+                  <Input placeholder={i18n.t("inputTextPlaceholder")?.toString()}
+                    value={tag}
+                    onChange={(e: any) => onTagChange(e.target.value)}
+                  />
+                </Space>
+                <p style={{ fontWeight: "bold" }}>{i18n.t("comboSetup")}</p>
+                <div style={{ maxWidth: 300 }}>
+                  <Checkbox.Group
+                    options={comboOptions.filter((c: any) => !c.disabled)}
+                    value={
+                      Array.from(comboOptions,
+                        (c: any) => c.checked ? c.value : null)
+                        .filter(f => f)}
+                    onChange={(e) => onComboOptionsChange(0, e)}
+                  />
+                  {
+                    comboChildren
+                  }
+                </div>
+                <Divider dashed />
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <Button onClick={() => openMyCombo()} style={{ marginRight: '10px' }}>{i18n.t("importCombo")}</Button>
+                  <Button onClick={() => download()} style={{ marginRight: '10px' }}
+                    disabled={!tag.trim()}
+                  >{i18n.t("exportCombo")}</Button>
+                  {deleteCallback ? <Popconfirm
+                    placement="bottomRight"
+                    title={i18n.t("askDelete")}
+                    onConfirm={() => deleteMyCombo(id)}
+                    okText={i18n.t("deleteYes")}
+                    cancelText={i18n.t("deleteNo")}
+                    zIndex={100000000}
                   >
-                    删除
-                  </Button>
+                    <Button danger
+                      disabled={!tag.trim()}
+                      style={{ marginRight: '10px' }}
+                    >
+                      {i18n.t("deleteBtn")}
+                    </Button>
 
-                </Popconfirm> : ''}
+                  </Popconfirm> : ''}
 
 
-                {saveCallback ?
-                  <Button type={"primary"} onClick={() => save()}>保存</Button> : ''}
-              </div>
-            </Panel0>
-          </Collapse>
-        </Card>
-      </Panel>
+                  {saveCallback ?
+                    <Button type={"primary"} onClick={() => save()}
+                      disabled={!tag.trim()}
+                    >{i18n.t("save")}</Button> : ''}
+                </div>
+              </Panel0>
+            </Collapse>
+          </Card>
+        </Panel>
+      </> : ""}
+      <div className="loading" style={{
+        display: loading ? 'flex' : 'none'
+      }}>
+        <Spin />
+      </div>
     </ReactFlow>
   );
 }
 
 export default (props: any) => {
-  const { debug, loadData, isNew, saveCallback, deleteCallback, exportData } = props;
+  const { debug, merge, loadData, isNew, saveCallback, deleteCallback, exportData } = props;
+
   return (<ReactFlowProvider >
     <Flow
       debug={debug}
+      merge={merge}
       loadData={loadData}
       isNew={isNew}
       exportData={exportData}
       saveCallback={saveCallback}
       deleteCallback={deleteCallback} />
+
   </ReactFlowProvider>)
 };
 

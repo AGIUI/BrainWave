@@ -1,6 +1,6 @@
 {
     "name": "brainwave",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "private": true,
     "scripts": {
         "dev": "next dev",
@@ -16,7 +16,10 @@
         "react": "18.2.0",
         "react-dom": "18.2.0",
         "reactflow": "^11.7.0",
-        "zustand": "^4.3.8"
+        "zustand": "^4.3.8",
+        "i18next": "^22.5.0",
+        "i18next-browser-languagedetector": "^7.0.2",
+        "react-i18next": "^12.3.1"
     },
     "devDependencies": {
         "@types/node": "18.11.17",

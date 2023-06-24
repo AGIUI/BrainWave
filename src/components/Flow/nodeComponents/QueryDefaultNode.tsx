@@ -1,30 +1,15 @@
 import React from 'react'
-import { Handle, NodeProps, Position } from 'reactflow';
-import { Input, Card, Select, Radio, InputNumber, Slider, Dropdown, Divider, Space, Button } from 'antd';
-import { DownOutlined } from '@ant-design/icons';
-import type { MenuProps } from 'antd';
+import { Handle, Position } from 'reactflow';
+import { Card, Dropdown } from 'antd';
 
-const { TextArea } = Input;
-const { Option } = Select;
+import i18n from "i18next";
 
-const menuNames = {
-  title: '进入网页',
-  second: 'URL',
-  debug: '调试'
-}
+import { createDebug, createURL, createDelay, getI18n, nodeStyle } from './Base'
+// import { i18nInit } from '../i18nConfig';
 
 
-export type NodeData = {
-  debug: any;
-  queryObj: any,
-  type: string,
-  onChange: any
-};
-
-
-const createUrl = (title: string, json: any, onChange: any) => {
-  const { protocol, url, init, query, isApi, isQuery } = json;
-  const key = 'query';
+const createUI = (json: any, delay: number, delayFormat: string, onChange: any) => {
+  const { protocol, url } = json;
 
   return <div onMouseOver={() => {
     onChange({
@@ -38,94 +23,178 @@ const createUrl = (title: string, json: any, onChange: any) => {
         data: true
       })
     }}>
-    <p>{title}</p>
-    <Input addonBefore={
-      <Select defaultValue={protocol} onChange={(e: string) => {
-        onChange({
-          key,
-          data: {
-            ...json, protocol: e
-          }
-        })
 
-      }}>
-        <Option value="http://">http://</Option>
-        <Option value="https://">https://</Option>
-      </Select>
-    }
-      placeholder={`请填写url`}
-      defaultValue={url}
-      onChange={(e: any) => {
-        // console.log('input url',e)
-        onChange({
-          key,
-          data: {
+    {
+      createURL(i18n.t('url'), i18n.t('urlPlaceholder'), protocol, url, (e: any) => {
+        let d = {
+          ...json,
+          protocol: e.data
+        }
+        if (e.key == 'url') {
+          d = {
             ...json,
-            url: e.target.value,
+            url: e.data,
             action: 'default'
           }
+        }
+        onChange({
+          key: 'query',
+          data: d
         })
-      }}
-    />
+      })
+    }
+
+    {
+      createDelay(i18n.t('delay'), delayFormat, delay.toString(), [
+        { value: 'ms', label: i18n.t('ms') },
+        { value: 's', label: i18n.t('s') }], (e: any) => {
+          if (e.key == 'delay') {
+            onChange({
+              key: 'delay',
+              data: e.data
+            })
+          }
+        })
+    }
+
 
   </div>
 }
 
 
-function QueryDefaultNode({ id, data, selected }: NodeProps<NodeData>) {
-  const [type, setType] = React.useState(data.type)
-  // console.log('QueryDefaultNode', data)
+function Main({ id, data, selected }: any) {
+  // i18nInit();
+  const { debugMenu, contextMenus } = getI18n();
+  const [statusInputForDebug, setStatusInputForDebug] = React.useState('');
+  const [debugInput, setDebugInput] = React.useState((data.merged ? JSON.stringify(data.merged, null, 2) : ""));
+  const [shouldRefresh, setShouldRefresh] = React.useState(true)
 
   // queryObj
-  data.queryObj.isQuery = type === "query";
+  // data.queryObj.isQuery = type === "query";
   const [queryObj, setQueryObj] = React.useState(data.queryObj)
-  const updateQueryObj = (e: any) => {
+  const [delayFormat, setDelayFormat] = React.useState('ms');
+
+  const [delay, setDelay] = React.useState(queryObj.delay || 1000)
+
+
+  const updateData = (e: any) => {
     // console.log(e)
     if (e.key === 'query') {
       setQueryObj(e.data);
       data.onChange({ id, data: { queryObj: e.data } })
     }
+
+    if (e.key == "debug") data.onChange({ id, data: e.data })
     if (e.key == 'draggable') data.onChange({ id, data: { draggable: e.data } })
+
+    if (e.key === "delay") {
+      const { delay, delayFormat } = e.data;
+      let d = delay;
+      if (delayFormat == 's') d = d * 1000;
+      // console.log(d,delayFormat)
+      setQueryObj({
+        ...queryObj,
+        delay: d
+      });
+      setDelay(delay)
+      setDelayFormat(delayFormat)
+      data.onChange({
+        id, data: {
+          queryObj: {
+            ...queryObj,
+            delay: d
+          }
+        }
+      })
+    }
+
   }
 
 
   const createNode = () => {
-    const node = [createUrl(menuNames.second, queryObj, updateQueryObj)];
 
-    if (data.debug) {
-      node.push(<Divider dashed />)
-      node.push(<Button onClick={(e) => data.debug ? data.debug(data) : ''} >{menuNames.debug}</Button>)
+    if (data.debugInput != debugInput && shouldRefresh) {
+      setDebugInput(data.debugInput);
+      setShouldRefresh(false)
     }
+
+    // console.log(delay, delayFormat)
+    const node = [createUI(queryObj, delay, delayFormat, updateData)];
+
+    node.push(
+      createDebug(debugMenu, id,
+        debugInput,
+        data.debugOutput,
+        (event: any) => {
+            if (event.key == 'input') {
+                const { data } = event;
+                setDebugInput(data)
+                let json: any;
+                try {
+                    json = JSON.parse(data);
+                    setStatusInputForDebug('')
+                } catch (error) {
+                    setStatusInputForDebug('error')
+                }
+            };
+            if (event.key == 'draggable') updateData(event)
+        },
+        () => {
+            console.log('debugFun debugInput', debugInput)
+            if (debugInput != "" && debugInput.replace(/\s/ig, "") != "[]" && statusInputForDebug != 'error') {
+                let merged;
+                try {
+                    merged = JSON.parse(debugInput)
+                } catch (error) {
+
+                }
+                console.log('debugFun merged', merged)
+                data.merged = merged;
+                data.debugInput = JSON.stringify(merged, null, 2);
+                if (data.role) data.role.merged = merged.filter((f: any) => f.role == 'system');
+                data.debug && data.debug(data);
+            } else if (debugInput == "" || debugInput.replace(/\s/ig, "") == "[]") {
+                data.merged = null;
+                data.debugInput = "";
+                if (data.role) data.role.merged = null;
+                console.log('debugFun no merged', data)
+                data.debug && data.debug(data)
+                setShouldRefresh(true);
+            }else if (debugInput === undefined) {
+              data.debug && data.debug(data)
+            }
+        },
+        () => data.merge && data.merge(data),
+        {
+            statusInput: statusInputForDebug,
+            statusOutput: ""
+        })
+    )
 
     return <Card
       key={id}
-      title={menuNames.title}
+      title={
+          <>
+              <p style={{ marginBottom: 0 }}>{i18n.t('queryDefaultNodeTitle')}</p>
+              <p style={{ textOverflow: 'ellipsis', overflow: 'hidden', padding: '0px', paddingTop: '10px', margin: 0 ,fontWeight:"normal",marginBottom:10 }}>
+                  ID: {id}
+              </p>
+          </>
+      }
       bodyStyle={{ paddingTop: 0 }}
       style={{ width: 300 }}>
       {...node}
     </Card>
   }
 
-  const nodeStyle = selected ? {
-    border: '1px solid transparent',
-    padding: '2px 5px',
-    borderRadius: '12px',
-    backgroundColor: 'cornflowerblue'
-  } : {
-    border: '1px solid transparent',
-    padding: '2px 5px'
-  };
-
-  const items: MenuProps['items'] = [
-    {
-      label: menuNames.debug,
-      key: 'debug',
-    }
-  ];
 
   return (
-    <Dropdown menu={{ items, onClick: () => data.debug ? data.debug() : '' }} trigger={['contextMenu']}>
-      <div style={nodeStyle} key={id}>
+    <Dropdown menu={contextMenus(id, data)} trigger={['contextMenu']}>
+      <div style={selected ? {
+        ...nodeStyle,
+        backgroundColor: 'cornflowerblue'
+      } : nodeStyle}
+        key={id}>
         {createNode()}
         <Handle type="target" position={Position.Left} />
         <Handle type="source" position={Position.Right} />
@@ -134,4 +203,4 @@ function QueryDefaultNode({ id, data, selected }: NodeProps<NodeData>) {
   );
 }
 
-export default QueryDefaultNode;
+export default Main;

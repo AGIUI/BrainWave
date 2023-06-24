@@ -1,244 +1,43 @@
 import React from 'react'
-import { Handle, NodeProps, Position } from 'reactflow';
-import { Input, Card, Select, Radio, Checkbox, Slider, Dropdown, Divider, Space, Button } from 'antd';
-import { DownOutlined } from '@ant-design/icons';
-import type { MenuProps } from 'antd';
-const { TextArea } = Input;
-const { Option } = Select;
+import { Handle, Position } from 'reactflow';
+import { Card, Dropdown } from 'antd';
 
+import i18n from "i18next";
 
-const menuNames = {
-  title: '提示工程',
-  userInput: '指令',
-  input: '输入',
-  output: '输出',
-  translate: '翻译',
-  format: '-',
-  debug: '调试'
-}
-
-
-export type NodeData = {
-  getNodes: any;
-  nodeInputId: string;
-  debug: any;
-  text: string,
-  api: any,
-  queryObj: any,
-  temperature: number,
-  model: string,
-  input: string,
-  output: string,
-  type: string,
-  opts: any,
-  onChange: any,
-  translate: any
-};
+import { createDebug, selectNodeInput, createText, createSelect, createOutput, createModel, nodeStyle, getI18n } from './Base';
+// import { i18nInit } from '../i18nConfig';
 
 
 
-const createTextAndInput = (
-  title: string, text: string, input: string,
-  nodeOpts: any,
-  selectNodeValue: string,
-  onChange: any) => < div
-    onMouseOver={() => {
-      onChange({
-        key: 'draggable',
-        data: false
-      })
-    }}
-    onMouseLeave={() => {
-      onChange({
-        key: 'draggable',
-        data: true
-      })
-    }}
-  >
-    <p>{title}</p>
-    <TextArea
-      defaultValue={text}
-      showCount
-      allowClear
-      autoSize
-      placeholder="maxLength is 6"
-      // maxLength={6}
-
-      onChange={(e) => {
-        onChange({
-          key: 'text',
-          data: e.target.value
-        })
-      }}
-    />
-    <Checkbox
-      style={{ marginTop: '8px' }}
-      defaultChecked={input == "nodeInput"}
-      // checked={input == "nodeInput"}
-      onChange={(e) => {
-        // console.log(e)
-        onChange({
-          key: 'input',
-          data: e.target.checked ? 'nodeInput' : 'default'
-        })
-      }}>从上一节点获取文本</Checkbox>
-    {
-      input === "nodeInput" ? <Select
-        value={selectNodeValue}
-        style={{ width: '100%', marginTop: '8px' }}
-        onChange={(e) => {
-          onChange({
-            key: 'nodeInput',
-            data: e
-          })
-        }}
-        options={nodeOpts}
-      /> : ''
-    }
-  </div>;
-
-
-
-const createModel = (model: string, temperature: number, opts: any, onChange: any) => <>
-  <p>{opts.filter((m: any) => m.value == 'model')[0].label}</p>
-  <Radio.Group
-    onChange={(e) => {
-
-      onChange({
-        key: 'model',
-        data: e.target.value
-      })
-
-    }}
-    defaultValue={model}
-  >
-    {Array.from(opts.filter((m: any) => m.value == 'model')[0].options,
-      (p: any, i: number) => {
-        return <Radio.Button
-          key={i}
-          value={p.value}
-        >{p.label}</Radio.Button>
-      })}
-  </Radio.Group>
-
-  <p>{opts.filter((m: any) => m.value == 'temperature')[0].label}</p>
-
-  <div
-    onMouseOver={() => {
-      onChange({
-        key: 'draggable',
-        data: false
-      })
-    }}
-    onMouseLeave={() => {
-      onChange({
-        key: 'draggable',
-        data: true
-      })
-    }}
-  >
-    <Slider
-      style={{ width: '200px' }}
-      range={false}
-      max={1}
-      min={0}
-      step={0.02}
-      defaultValue={temperature}
-      value={temperature}
-      onChange={(e: any) => {
-        // console.log('temperature', e)
-        onChange({
-          key: 'temperature',
-          data: e
-        })
-
-      }}
-
-    />
-  </div>
-
-
-</>
-
-const createInput = (title: string, key: string, value: string, opts: any, onChange: any) => <>
-  <p>{title}</p>
-  <Radio.Group
-    style={{
-      flexDirection: 'column',
-      justifyContent: 'center',
-      alignItems: 'baseline'
-    }}
-    defaultValue={value}
-    value={value}
-    options={opts}
-    onChange={(e: any) => {
-      // console.log(e)
-      onChange({
-        key: key,
-        data: e.target.value
-      })
-    }} />
-</>
-
-const createTranslate = (title: string, key: string, value: string, opts: any, onChange: any) => {
-  return <div
-    onMouseOver={() => {
-      onChange({
-        key: 'draggable',
-        data: false
-      })
-    }}
-    onMouseLeave={() => {
-      onChange({
-        key: 'draggable',
-        data: true
-      })
-    }}
-  >
-    <p>{title}</p>
-    <Select
-      defaultValue={value}
-      style={{ width: 120 }}
-      onChange={(e) => {
-        onChange({
-          key: key,
-          data: e
-        })
-      }}
-      options={opts}
-    /></div>
-}
-
-const createOutput = (title: string, key: string, value: string, opts: any, onChange: any) => <>
-  <p>{title}</p>
-  <Radio.Group
-    style={{
-      flexDirection: 'column',
-      justifyContent: 'center',
-      alignItems: 'baseline'
-    }}
-    defaultValue={value}
-    value={value}
-    options={opts}
-    onChange={(e: any) => {
-      // console.log(e)
-      onChange({
-        key: key,
-        data: e.target.value
-      })
-    }} />
-</>
-
-
-
-function Main({ id, data, selected }: NodeProps<NodeData>) {
+function Main({ id, data, selected }: any) {
+  // i18nInit();
+  const { debugMenu, contextMenus } = getI18n();
+  const [statusInputForDebug, setStatusInputForDebug] = React.useState('');
+  const [debugInput, setDebugInput] = React.useState((data.merged ? JSON.stringify(data.merged, null, 2) : ""));
+  const [shouldRefresh, setShouldRefresh] = React.useState(true)
 
   // 模型
   const models = data.opts.models;
   const [model, setModel] = React.useState(data.model)
-  const [temperature, setTemperature] = React.useState(data.temperature)
-  const updateModel = (e: any) => {
-    // console.log(e)
+  const [temperature, setTemperature] = React.useState(data.temperature);
+
+  // input
+  const [input, setInput] = React.useState(data.input)
+  const [nodeInputId, setNodeInputId] = React.useState(data.nodeInputId)
+  // text
+  const [text, setText] = React.useState(data.text)
+
+  // output
+  const translates = data.opts.translates;
+  const [translate, setTranslate] = React.useState(data.translate)
+
+  // output
+  const outputs = data.opts.outputs;
+
+  const [output, setOutput] = React.useState(data.output)
+
+  const updateData = (e: any) => {
+    console.log(e)
     if (e.key === 'model') {
       setModel(e.data);
       data.onChange({ id, data: { model: e.data } })
@@ -247,22 +46,23 @@ function Main({ id, data, selected }: NodeProps<NodeData>) {
       setTemperature(e.data);
       data.onChange({ id, data: { temperature: e.data } })
     }
-    if (e.key == 'draggable') data.onChange({ id, data: { draggable: e.data } })
-  }
 
-  // input
-  const inputs = data.opts.inputs;
-  const [input, setInput] = React.useState(data.input)
-  const [nodeInputId, setNodeInputId] = React.useState(data.nodeInputId)
-  // text
-  const [text, setText] = React.useState(data.text)
-  const updateTextAndInput = (e: any) => {
-    // console.log(e)
     if (e.key === 'text') {
       setText(e.data);
-      data.onChange({ id, data: { text: e.data } })
+      data.onChange({ id, data: { text: e.data, debugInput: "" } });
+      setShouldRefresh(true);
+      // console.log('updateData:',e,shouldRefresh)
     }
 
+    if(e.key=='debugInput'){
+      data.onChange({
+        id, data: {
+          debugInput: e.data
+        }
+      })
+    }
+
+    // nodeinput
     if (e.key === 'input') {
       setInput(e.data);
       data.onChange({
@@ -272,73 +72,129 @@ function Main({ id, data, selected }: NodeProps<NodeData>) {
       })
     }
 
-    if (e.key == "nodeInput") {
-      setNodeInputId(e.data);
-      data.onChange({
-        id, data: {
-          nodeInputId: e.data
-        }
-      })
-    }
-
-    if (e.key == 'draggable') data.onChange({ id, data: { draggable: e.data } })
-
-  }
-
-
-  // output
-  const translates = data.opts.translates;
-  const [translate, setTranslate] = React.useState(data.translate)
-  const updateTranslate = (e: any) => {
-    // console.log(e)
-    if (e.key === 'translate') {
-      setTranslate(e.data);
-      data.onChange({ id, data: { translate: e.data } })
-    }
-    if (e.key == 'draggable') data.onChange({ id, data: { draggable: e.data } })
-  }
-
-  // output
-  const outputs = data.opts.outputs;
-  const [output, setOutput] = React.useState(data.output)
-  const updateOutput = (e: any) => {
-    // console.log(e)
     if (e.key === 'output') {
       setOutput(e.data);
       data.onChange({ id, data: { output: e.data } })
     }
 
+    if (e.key == "nodeInput") {
+      setNodeInputId(e.data);
+      data.onChange({
+        id,
+        data: {
+          nodeInputId: e.data,
+          input: e.data ? 'nodeInput' : 'default'
+        }
+      })
+    }
+
+    // console.log(e)
+    if (e.key === i18n.t('translate')) {
+      setTranslate(e.data);
+      data.onChange({ id, data: { translate: e.data } })
+    }
+
+
+    if (e.key == "debug") data.onChange({ id, data: e.data })
+    if (e.key == 'draggable') data.onChange({ id, data: { draggable: e.data } })
+  }
+
+  if (data.debugInput != debugInput && shouldRefresh) {
+    setDebugInput(data.debugInput);
+    setShouldRefresh(false)
   }
 
 
   const createNode = () => {
     const node = [];
 
-    let allNodes: any[] = [];
-    if (data.getNodes) allNodes = [...data.getNodes()]
-
-    const nodeOpts = Array.from(allNodes, (node, i) => {
-      return {
-        value: node.id, label: node.type
-      }
-    });
-
-    let selectNodeValue = nodeInputId || nodeOpts[0].value
+    let nodeOpts: any[] = [];
+    if (data.getNodes) nodeOpts = [...data.getNodes(id)]
+    let selectNodeValue = input === "nodeInput" ? (nodeInputId) : null
     // console.log('selectNodeValue',selectNodeValue,nodeInputId,nodeOpts[0],data)
+    // setNodeInputId(selectNodeValue)
 
-    node.push(createTextAndInput(menuNames.userInput, text, input, nodeOpts, selectNodeValue, updateTextAndInput))
-    node.push(createModel(model, temperature, models, updateModel))
-    node.push(createTranslate(menuNames.translate, 'translate', translate, translates, updateTranslate))
-    node.push(createOutput(menuNames.output, 'output', output, outputs, updateOutput))
+    node.push(
+      createText('text', i18n.t('userInput'), '', text, '', updateData)
+    )
+    node.push(
+      selectNodeInput(i18n.t('getFromBefore'), selectNodeValue, nodeOpts, updateData)
+    )
 
-    if (data.debug) {
-      node.push(<Divider dashed />)
-      node.push(<Button onClick={(e) => data.debug ? data.debug(data) : ''} >{menuNames.debug}</Button>)
-    }
+    node.push(createModel(model, temperature, models, updateData))
+
+    node.push(
+      createSelect(i18n.t('translate'), translate, translates, updateData)
+    )
+
+    node.push(createOutput(i18n.t('outputText'), 'output', output, outputs, updateData))
+
+    node.push(
+      createDebug(debugMenu, id,
+        debugInput,
+        data.debugOutput,
+        (event: any) => {
+          if (event.key == 'input') {
+            const { data } = event;
+            setDebugInput(data)
+            let json: any;
+            try {
+              json = JSON.parse(data);
+              setStatusInputForDebug('')
+              updateData({
+                key:'debugInput',
+                data:data
+              })
+            } catch (error) {
+              setStatusInputForDebug('error')
+            }
+          };
+          if (event.key == 'draggable') updateData(event)
+        },
+        () => {
+          console.log('debugFun debugInput', debugInput)
+          if (debugInput != "" && debugInput && debugInput.replace(/\s/ig, "") != "[]" && statusInputForDebug != 'error') {
+            let merged;
+            try {
+              merged = JSON.parse(debugInput)
+            } catch (error) {
+
+            }
+            console.log('debugFun merged', merged)
+            data.merged = merged;
+            data.debugInput = JSON.stringify(merged, null, 2);
+            if (data.role) data.role.merged = merged.filter((f: any) => f.role == 'system');
+            data.debug && data.debug(data);
+          } else if (debugInput == "" || debugInput && debugInput.replace(/\s/ig, "") == "[]") {
+            data.merged = null;
+            data.debugInput = "";
+            if (data.role) data.role.merged = null;
+            console.log('debugFun no merged', data)
+            data.debug && data.debug(data)
+            setShouldRefresh(true);
+          } else if (debugInput === undefined) {
+            data.debug && data.debug(data);
+            setShouldRefresh(true);
+          }
+        },
+        () => data.merge && data.merge(data),
+        {
+          statusInput: statusInputForDebug,
+          statusOutput: ""
+        })
+    )
+
 
     return <Card
       key={id}
-      title={menuNames.title}
+      title={
+        <>
+          <p style={{ marginBottom: 0 }}>{i18n.t('promptNodeTitle')}</p>
+          <p style={{ textOverflow: 'ellipsis', overflow: 'hidden', padding: '0px', paddingTop: '10px', margin: 0, fontWeight: "normal", marginBottom: 10 }}>
+            ID: {id}
+          </p>
+        </>
+      }
       bodyStyle={{ paddingTop: 0 }}
       // extra={createType(type, agents, updateType)}
       style={{ width: 300 }}>
@@ -346,29 +202,13 @@ function Main({ id, data, selected }: NodeProps<NodeData>) {
     </Card>
   }
 
-  const nodeStyle = selected ? {
-    border: '1px solid transparent',
-    padding: '2px 5px',
-    borderRadius: '12px',
-    backgroundColor: 'cornflowerblue'
-  } : {
-    border: '1px solid transparent',
-    padding: '2px 5px'
-  };
-
-
-  const items: MenuProps['items'] = [
-    {
-      label: '调试',
-      key: 'debug',
-
-    }
-  ];
-
-
   return (
-    <Dropdown menu={{ items, onClick: () => data.debug ? data.debug() : '' }} trigger={['contextMenu']}>
-      <div style={nodeStyle} key={id}>
+    <Dropdown menu={contextMenus(id, data)} trigger={['contextMenu']}>
+      <div style={selected ? {
+        ...nodeStyle,
+        backgroundColor: 'cornflowerblue'
+      } : nodeStyle}
+        key={id}>
         {createNode()}
         <Handle type="target" position={Position.Left} />
         <Handle type="source" position={Position.Right} />

@@ -1,29 +1,16 @@
 import React from 'react'
-import { Handle, NodeProps, Position } from 'reactflow';
-import { Input, Card, Select, Radio, InputNumber, Checkbox, Dropdown, Divider, Space, Button } from 'antd';
-import { DownOutlined } from '@ant-design/icons';
-import type { MenuProps } from 'antd';
+import { Handle, Position } from 'reactflow';
+import { Card, Dropdown } from 'antd';
 
-const { TextArea } = Input;
-const { Option } = Select;
+import { createDebug, createSelect, createTextArea, nodeStyle, getI18n } from './Base'
 
-const menuNames = {
-  title: '内容读取',
-  content: '获取网页内容',
-  selectQuery: 'SelectQuery',
-  placeholder: '不填默认获取整个网页',
-  debug: '调试'
-}
+import i18n from "i18next";
+// import { i18nInit } from '../i18nConfig';
 
-export type NodeData = {
-  debug: any;
-  queryObj: any,
-  type: string,
-  onChange: any
-};
 
 const createUrl = (title1: string, title2: string, placeholder2: string, json: any, onChange: any) => {
   const { query, content } = json;
+  console.log("selection", content);
   const key = 'query'
   return <div onMouseOver={() => {
     onChange({
@@ -37,111 +24,162 @@ const createUrl = (title1: string, title2: string, placeholder2: string, json: a
         data: true
       })
     }}>
-    <p>{title1}</p>
-    <Select
-      defaultValue={content || "bindCurrentPage"}
-      style={{ width: 120 }}
-      onChange={(e) => {
-        // console.log(e)
+
+    {
+      createSelect(title1, content || "bindCurrentPage", [
+        { value: 'bindCurrentPageHTML', label: i18n.t('bindWebHTML') },
+        { value: 'bindCurrentPage', label: i18n.t('bindWebContent') },
+        { value: 'bindCurrentPageImages', label: i18n.t('bindWebImages') },
+        { value: 'bindCurrentPageURL', label: i18n.t('bindWebURL') },
+        { value: 'bindCurrentPageTitle', label: i18n.t('bindWebTitle') },
+
+      ], (e: any) => {
+
+        if (e.key == title1) {
+          // console.log(e)
+          const data = {
+            ...json,
+            content: e.data,
+            action: 'read'
+          }
+
+          onChange({
+            key: "query",
+            data
+          })
+        }
+
+      })
+    }
+
+    {
+      content === 'bindCurrentPageHTML' || content === 'bindCurrentPage' || content === 'bindCurrentPageImages'?
+      createTextArea(title2, query, placeholder2, "", (e: any) => {
         const data = {
           ...json,
-          content: e,
+          query: e.data,
           action: 'read'
         }
 
         onChange({
-          key,
+          key: "query",
           data
         })
+      }):null
+    }
+    {
+      content === 'bindCurrentPageHTML' || content === 'bindCurrentPage' || content === 'bindCurrentPageImages'?
+      <p style={{marginTop:5,color:"red",fontSize:12}}>{i18n.t('queryReadPlaceholderTips')}</p>:null
+    }
 
-      }}
-      options={[
-        { value: 'bindCurrentPageHTML', label: '网页HTML' },
-        { value: 'bindCurrentPage', label: '网页正文' },
-        { value: 'bindCurrentPageURL', label: '网页URL' },
-        { value: 'bindCurrentPageTitle', label: '网页标题', disabled: true },
-        { value: 'bindCurrentPageImages', label: '网页图片' },
-      ]}
-    />
-    <p>{title2}</p>
-    <TextArea
-      defaultValue={query}
-      rows={4}
-      placeholder={placeholder2}
-      autoSize
-      onChange={(e) => {
-        const data = {
-          ...json,
-          action: 'read',
-          query: e.target.value
-        }
-        onChange({
-          key,
-          data
-        })
-      }}
-    />
   </div>
 }
 
 
 
-function QueryReadNode({ id, data, selected }: NodeProps<NodeData>) {
-  const [type, setType] = React.useState(data.type)
-  // console.log('QueryURLNode', data)
+function QueryReadNode({ id, data, selected }: any) {
+  // i18nInit();
+  const { debugMenu, contextMenus } = getI18n();
+  const [statusInputForDebug, setStatusInputForDebug] = React.useState('');
+  const [debugInput, setDebugInput] = React.useState((data.merged ? JSON.stringify(data.merged, null, 2) : ""));
+  const [shouldRefresh, setShouldRefresh] = React.useState(true)
 
-  // queryObj
-  data.queryObj.isQuery = type === "query";
   const [queryObj, setQueryObj] = React.useState(data.queryObj)
-  const updateQueryObj = (e: any) => {
+  const updateData = (e: any) => {
     // console.log(e)
     if (e.key === 'query') {
       setQueryObj(e.data);
       data.onChange({ id, data: { queryObj: e.data } })
     }
+    if (e.key == "debug") data.onChange({ id, data: e.data })
     if (e.key == 'draggable') data.onChange({ id, data: { draggable: e.data } })
   }
 
-
   const createNode = () => {
+
+    if (data.debugInput != debugInput && shouldRefresh) {
+      setDebugInput(data.debugInput);
+      setShouldRefresh(false)
+    }
+
     const node = [
-      createUrl(menuNames.content, menuNames.selectQuery, menuNames.placeholder, queryObj, updateQueryObj)
+      createUrl(i18n.t('content'), i18n.t('selectQuery'), i18n.t('queryReadPlaceholder'), queryObj, updateData)
     ];
 
-    if (data.debug) {
-      node.push(<Divider dashed />)
-      node.push(<Button onClick={(e) => data.debug ? data.debug(data) : ''} >{menuNames.debug}</Button>)
-    }
+    node.push(
+      createDebug(debugMenu, id,
+        debugInput,
+        data.debugOutput,
+        (event: any) => {
+          if (event.key == 'input') {
+            const { data } = event;
+            setDebugInput(data)
+            let json: any;
+            try {
+              json = JSON.parse(data);
+              setStatusInputForDebug('')
+            } catch (error) {
+              setStatusInputForDebug('error')
+            }
+          };
+          if (event.key == 'draggable') updateData(event)
+        },
+        () => {
+          console.log('debugFun debugInput', debugInput)
+          if (debugInput != "" && debugInput && debugInput.replace(/\s/ig, "") != "[]" && statusInputForDebug != 'error') {
+            let merged;
+            try {
+              merged = JSON.parse(debugInput)
+            } catch (error) {
+
+            }
+            console.log('debugFun merged', merged)
+            data.merged = merged;
+            data.debugInput = JSON.stringify(merged, null, 2);
+            if (data.role) data.role.merged = merged.filter((f: any) => f.role == 'system');
+            data.debug && data.debug(data);
+          } else if (debugInput == "" || debugInput && debugInput.replace(/\s/ig, "") == "[]") {
+            data.merged = null;
+            data.debugInput = "";
+            if (data.role) data.role.merged = null;
+            console.log('debugFun no merged', data)
+            data.debug && data.debug(data)
+            setShouldRefresh(true);
+          } else if (debugInput === undefined) {
+            data.debug && data.debug(data);
+            setShouldRefresh(true);
+          }
+        },
+        () => data.merge && data.merge(data),
+        {
+          statusInput: statusInputForDebug,
+          statusOutput: ""
+        })
+    )
 
     return <Card
       key={id}
-      title={menuNames.title}
+      title={
+        <>
+          <p style={{ marginBottom: 0 }}>{i18n.t('queryReadNodeTitle')}</p>
+          <p style={{ textOverflow: 'ellipsis', overflow: 'hidden', padding: '0px', paddingTop: '10px', margin: 0, fontWeight: "normal", marginBottom: 10 }}>
+            ID: {id}
+          </p>
+        </>
+      }
       bodyStyle={{ paddingTop: 0 }}
       style={{ width: 300 }}>
       {...node}
     </Card>
   }
 
-  const nodeStyle = selected ? {
-    border: '1px solid transparent',
-    padding: '2px 5px',
-    borderRadius: '12px',
-    backgroundColor: 'cornflowerblue'
-  } : {
-    border: '1px solid transparent',
-    padding: '2px 5px'
-  };
-
-  const items: MenuProps['items'] = [
-    {
-      label: menuNames.debug,
-      key: 'debug',
-    }
-  ];
 
   return (
-    <Dropdown menu={{ items, onClick: () => data.debug ? data.debug() : '' }} trigger={['contextMenu']}>
-      <div style={nodeStyle} key={id}>
+    <Dropdown menu={contextMenus(id, data)} trigger={['contextMenu']}>
+      <div style={selected ? {
+        ...nodeStyle,
+        backgroundColor: 'cornflowerblue'
+      } : nodeStyle} key={id}>
         {createNode()}
         <Handle type="target" position={Position.Left} />
         <Handle type="source" position={Position.Right} />
