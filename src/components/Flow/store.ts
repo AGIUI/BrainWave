@@ -145,7 +145,7 @@ const mergeRun = (id: string, prompt: any, onChange: any, callback: any) => {
 }
 
 
-const _VERVISON = '0.1.0',
+const _VERVISON = '0.3.0',
   _APP = 'brainwave';
 
 
@@ -280,7 +280,7 @@ const exportData: any = (comboId: string, tag: string, comboOptions: any, edges:
         }
 
         if ([
-          "prompt", "promptCustom"
+          "prompt", "promptCustom", "userInput"
         ].includes(prompt.type)) {
           delete prompt.api;
           delete prompt.queryObj;
@@ -318,7 +318,7 @@ const exportData: any = (comboId: string, tag: string, comboOptions: any, edges:
         if (c.checked) return c.value;
 
       }).flat().filter(f => f)
-      // console.log(combo)
+      console.log(combo)
       res(combo)
     })
   })

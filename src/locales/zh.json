@@ -254,7 +254,7 @@
     "prompt-translate-zh": "翻译成中文",
     "prompt-translate-en": "翻译成英文",
 
-    "mergeRun": "保存"
-
-
+    "mergeRun": "保存",
+    "userInputNodeTitle": "用户输入",
+    "userInputText": "输入文本"
 }
