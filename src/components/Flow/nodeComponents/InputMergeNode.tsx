@@ -4,7 +4,7 @@ import { Handle, NodeProps, Position, useUpdateNodeInternals } from 'reactflow';
 import { Input, Avatar, Card, Select, Radio, InputNumber, Dropdown, Space, Button, Divider, MenuProps } from 'antd';
 import { DownOutlined, UserOutlined } from '@ant-design/icons';
 
-import { createDebug, nodeStyle, selectNodeInputBase, getI18n } from './Base'
+import { createText, nodeStyle, selectNodeInputBase, getI18n } from './Base'
 
 import i18n from "i18next";
 // import { i18nInit } from '../i18nConfig';
@@ -14,17 +14,22 @@ function Main({ id, data, selected }: any) {
 
     // i18nInit();
     const { debugMenu, contextMenus } = getI18n();
-    const [statusInputForDebug, setStatusInputForDebug] = React.useState('');
-    const [debugInput, setDebugInput] = React.useState((data.merged ? JSON.stringify(data.merged, null, 2) : ""));
-    const [shouldRefresh, setShouldRefresh] = React.useState(true)
 
+
+    let nodeOpts: any[] = [];
+    if (data.getNodes) nodeOpts = [...data.getNodes(id)];
+
+    const [inputs, setInputs] = React.useState(data.inputs?.nodes || [])
+    const [output, setOutput] = React.useState(data.inputs?.output || '')
 
     const updateData = (e: any) => {
-        if (e.key == "debug") data.onChange({ id, data: e.data })
         if (e.key == 'draggable') data.onChange({ id, data: { draggable: e.data } });
         if (e.key == 'inputs') data.onChange({
             id, data: {
-                inputs: e.data
+                inputs: {
+                    ...data.inputs,
+                    nodes: e.data,
+                }
             }
         });
         if (e.key === "nodeInput") {
@@ -38,25 +43,33 @@ function Main({ id, data, selected }: any) {
             data.onChange({
                 id,
                 data: {
-                    inputs: inps
+                    inputs: {
+                        ...data.inputs,
+                        nodes: inps
+                    }
                 }
             });
         }
+
+        if (e.key == 'output') {
+            setOutput(e.data)
+            data.onChange({
+                id, data: {
+                    inputs: {
+                        ...data.inputs,
+                        output: e.data,
+                    }
+                }
+            });
+        }
+
     }
 
-    let nodeOpts: any[] = [];
-    if (data.getNodes) nodeOpts = [...data.getNodes(id)];
 
-    const [inputs, setInputs] = React.useState(data.inputs ||[])
 
     // console.log(inputs)
 
     const createNode = (role: any) => {
-
-        if (shouldRefresh && data.debugInput != debugInput) {
-            setDebugInput(data.debugInput);
-        }
-
         return <Card
             key={id}
             title={
@@ -117,56 +130,14 @@ function Main({ id, data, selected }: any) {
                                 }</div>
                         ) : ''
                 }
-            </div>
-            {
-                createDebug(debugMenu, id,
-                    debugInput,
-                    data.debugOutput,
-                    (event: any) => {
-                        if (event.key == 'input') {
-                            const { data } = event;
-                            setDebugInput(data)
-                            let json: any;
-                            try {
-                                json = JSON.parse(data);
-                                setStatusInputForDebug('')
-                            } catch (error) {
-                                setStatusInputForDebug('error')
-                            }
-                        };
-                        if (event.key == 'draggable') updateData(event)
-                    },
-                    () => {
-                        console.log('debugFun debugInput', debugInput)
-                        if (debugInput != "" && debugInput.replace(/\s/ig, "") != "[]" && statusInputForDebug != 'error') {
-                            let merged;
-                            try {
-                                merged = JSON.parse(debugInput)
-                            } catch (error) {
 
-                            }
-                            console.log('debugFun merged', merged)
-                            data.merged = merged;
-                            data.debugInput = JSON.stringify(merged, null, 2);
-                            if (data.role) data.role.merged = merged.filter((f: any) => f.role == 'system');
-                            data.debug && data.debug(data);
-                        } else if (debugInput == "" || debugInput.replace(/\s/ig, "") == "[]") {
-                            data.merged = null;
-                            data.debugInput = "";
-                            if (data.role) data.role.merged = null;
-                            console.log('debugFun no merged', data)
-                            data.debug && data.debug(data)
-                            setShouldRefresh(true);
-                        } else if (debugInput === undefined) {
-                            data.debug && data.debug(data)
-                        }
-                    },
-                    () => data.merge && data.merge(data),
-                    {
-                        statusInput: statusInputForDebug,
-                        statusOutput: ""
-                    })
-            }
+
+                {createText('output', i18n.t('mergeReg'), '', output, '', updateData)}
+
+            </div>
+
+
+
         </Card>
     }
 
