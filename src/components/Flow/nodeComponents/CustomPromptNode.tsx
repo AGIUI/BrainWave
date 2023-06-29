@@ -4,12 +4,12 @@ import { Card, Dropdown } from 'antd';
 
 import i18n from "i18next";
 
-import { createDebug, selectNodeInput, createText, createSelect, createOutput, createModel, nodeStyle, getI18n } from './Base';
+import {createCardTitle, createDebug, selectNodeInput, createText, createSelect, createOutput, createModel, nodeStyle, getI18n } from './Base';
 // import { i18nInit } from '../i18nConfig';
 
 
 
-function BlankPromptNode({ id, data, selected }: any) {
+function Main({ id, data, selected }: any) {
     // i18nInit();
     const { debugMenu, contextMenus } = getI18n();
     const [statusInputForDebug, setStatusInputForDebug] = React.useState('');
@@ -57,15 +57,15 @@ function BlankPromptNode({ id, data, selected }: any) {
 
         if (e.key === 'debugInput') {
             setDebugInput(e.data);
-            data.onChange({ id, data: { debugInput: e.data } });
-
-            let json: any;
+            let json: any=[];
             try {
                 json = JSON.parse(e.data);
                 setStatusInputForDebug('')
             } catch (error) {
                 setStatusInputForDebug('error')
             }
+
+            data.onChange({ id, data: { debugInput: e.data, merged: json } });
 
         }
 
@@ -182,14 +182,7 @@ function BlankPromptNode({ id, data, selected }: any) {
 
         return <Card
             key={id}
-            title={
-                <>
-                    <p style={{ marginBottom: 0 }}>{i18n.t('customPromptNodeTitle')}</p>
-                    <p style={{ textOverflow: 'ellipsis', overflow: 'hidden', padding: '0px', paddingTop: '10px', margin: 0, fontWeight: "normal", marginBottom: 10 }}>
-                        ID: {id}
-                    </p>
-                </>
-            }
+            title={createCardTitle(i18n.t('customPromptNodeTitle'),id, data)  }
             bodyStyle={{ paddingTop: 0 }}
             // extra={createType(type, agents, updateType)}
             style={{ width: 300 }}>
@@ -212,4 +205,4 @@ function BlankPromptNode({ id, data, selected }: any) {
     );
 }
 
-export default BlankPromptNode;
+export default Main;

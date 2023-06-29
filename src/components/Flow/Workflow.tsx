@@ -262,7 +262,7 @@ const comboOptions = () => {
         {
             label: i18n.t('homeOption'),
             value: 'home',
-            disabled: true
+            disabled: false
         },
         {
             label: i18n.t('infiniteLoopOption'),
@@ -313,6 +313,10 @@ const defaultNode = () => ({
     file: {
         inputs: [],
         type: 'ppt'
+    },
+    inputs: {
+        nodes: [],//输入的节点
+        output: ''//输出的格式 ${n0} ${n1}
     },
     temperature: 0.6,
     model: 'ChatGPT',
@@ -374,19 +378,19 @@ const debugInfo = (prompt: any) => {
 //   把一条prompt包装成_control可以执行的数据格式
 const parsePrompt2ControlEvent = (id: string, prompt: any) => {
 
-    let merged: any;
     try {
-        merged = JSON.parse(prompt.debugInput)
+        if (!prompt.merged && prompt.debugInput) {
+            let merged: any = JSON.parse(prompt.debugInput);
+            prompt = {
+                ...prompt,
+                merged
+            }
+        }
     } catch (error) {
 
     }
 
-    prompt = {
-        ...prompt,
-        merged
-    }
-
-    if (prompt.type == 'role') {
+    if (prompt.type == 'role' && prompt.role) {
         prompt.role.merged = prompt.merged;
     }
 
@@ -420,10 +424,10 @@ const parseCombo2ControlEvent = (combo: any) => {
             ...combo,
             createDate: (new Date()).getTime()
         },
-        from: 'combo',
+        from: combo.from || 'combo',
         prompt: prompt,
         // 调试状态的显示
-        tag: d,
+        tag: combo.tag || d,
         debugInfo: d,
         newTalk: true,
         autoRun: true,
