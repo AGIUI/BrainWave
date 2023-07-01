@@ -10,7 +10,7 @@ import styles from '../styles/Home.module.css';
 import getNodes from 'components/Flow/nodeComponents/index'
 
 
-import QueryScrollNode from "components/Flow/nodeComponents/QueryScrollNode";
+// import QueryScrollNode from "components/Flow/nodeComponents/QueryScrollNode";
 
 
 
@@ -66,16 +66,16 @@ const Home: NextPage = () => {
       <Flow debug={{
         callback: () => {
           
-          let nodes = addNewNodes([
-            {
-              key: 'queryScroll',
-              component: QueryScrollNode,
-              parent: 'query',
-              name: "i18n.t('queryScrollNodeTitle')"
-            }
-          ]);
-          console.log('debug-callback-from-parent', nodes)
-          setNewNodes(nodes)
+          // let nodes = addNewNodes([
+          //   {
+          //     key: 'queryScroll',
+          //     component: QueryScrollNode,
+          //     parent: 'query',
+          //     name: "i18n.t('queryScrollNodeTitle')"
+          //   }
+          // ]);
+          // console.log('debug-callback-from-parent', nodes)
+          // setNewNodes(nodes)
           
         },
         open: true
