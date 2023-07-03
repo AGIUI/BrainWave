@@ -1,13 +1,60 @@
 import type { NextPage } from 'next';
 import Head from 'next/head';
+import React from 'react';
 
 import Flow from 'components/Flow';
 
 import styles from '../styles/Home.module.css';
 
+// 测试
+import getNodes from 'components/Flow/nodeComponents/index'
+
+
+// import QueryScrollNode from "components/Flow/nodeComponents/QueryScrollNode";
+
+
+
+const addNewNodes = (newNodes: any = []) => {
+  let nodes: any = getNodes();
+  // const newNode = {
+  //   key: 'queryScroll',
+  //   component: QueryScrollNode,
+  //   parent: 'query',
+  //   name: "i18n.t('queryScrollNodeTitle')"
+  // }
+
+  for (const newNode of newNodes) {
+    for (const node of nodes) {
+      if (node.key == newNode.parent) {
+        node.children.push(newNode)
+      }
+    }
+  }
+
+
+
+  return { nodes, nodeTypes: updateNodeTypes(nodes) };
+
+}
+
+const updateNodeTypes = (nodes: any) => {
+  const nodeTypes = []
+  for (const node of nodes) {
+    const children: any = node.children;
+    for (const n of children) {
+      nodeTypes[n.key] = n.component
+    }
+  }
+  return nodeTypes
+}
+
+const initNodes = () => {
+  let nodes = getNodes()
+  return { nodes, nodeTypes: updateNodeTypes(nodes) }
+}
 
 const Home: NextPage = () => {
-
+  const [newNodes, setNewNodes] = React.useState(initNodes())
   return (
     <div className={styles.container}>
       <Head>
@@ -17,11 +64,25 @@ const Home: NextPage = () => {
       </Head>
       <header className={styles.header}>AGIUI # 编辑器</header>
       <Flow debug={{
-        callback: () => console.log('debug-callback-from-parent'),
+        callback: () => {
+          
+          // let nodes = addNewNodes([
+          //   {
+          //     key: 'queryScroll',
+          //     component: QueryScrollNode,
+          //     parent: 'query',
+          //     name: "i18n.t('queryScrollNodeTitle')"
+          //   }
+          // ]);
+          // console.log('debug-callback-from-parent', nodes)
+          // setNewNodes(nodes)
+          
+        },
         open: true
       }}
         loadData={{ data: { 1: 2 } }}
         isNew={true}
+        newNodes={newNodes}
       />
     </div>
   );
