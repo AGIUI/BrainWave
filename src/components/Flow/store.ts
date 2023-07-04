@@ -15,6 +15,11 @@ import { nanoid } from 'nanoid/non-secure';
 import { defaultNode, comboOptions, _DEFAULTCOMBO, parsePrompt2ControlEvent } from './Workflow'
 import { parsePrompt } from './nodeComponents/Base'
 
+// import { getConfig } from '@components/Utils'
+
+let comboOptsItems = ['showInChat', 'contextMenus', 'role', 'home'];
+// if (getConfig().app == "Earth") comboOptsItems = ['showInChat', 'contextMenus', 'role'];
+
 
 export type RFState = {
   init: any;
@@ -302,7 +307,7 @@ const useStore = create<RFState>((set, get) => ({
   edges: [],
   init: () => {
     set({
-      comboOptions: comboOptions(),
+      comboOptions: comboOptions(comboOptsItems),
       defaultNode: initRootNode
     })
   },
@@ -392,7 +397,7 @@ const useStore = create<RFState>((set, get) => ({
       }
     };
 
-    let comboOpts = comboOptions();
+    let comboOpts = comboOptions(comboOptsItems);
     comboOpts = Array.from(comboOpts, (c: any) => {
       c.checked = interfaces.includes(c.value);
       if (c.children) {

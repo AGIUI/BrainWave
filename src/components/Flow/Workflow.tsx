@@ -228,16 +228,18 @@ const workflow = () => ({
     ]
 })
 
-const comboOptions = () => {
+const comboOptions = (show=['showInChat','contextMenus','role']) => {
     // console.log(i18n,1,i18n.t('showInChatOption'))
     return [
         {
             label: i18n.t('showInChatOption'),
-            value: 'showInChat',
+            value:'showInChat' ,
+            disabled:!show.includes('showInChat')
         },
         {
             label: i18n.t('contextMenusOption'),
             value: 'contextMenus',
+            disabled:!show.includes('contextMenus'),
             children:
                 // contexts 上下文
                 Array.from([
@@ -257,17 +259,17 @@ const comboOptions = () => {
         {
             label: i18n.t('roleOption'),
             value: 'role',
-            disabled: false
+            disabled:!show.includes('role') 
         },
         {
             label: i18n.t('homeOption'),
             value: 'home',
-            disabled: false
+            disabled:!show.includes('home') 
         },
         {
             label: i18n.t('infiniteLoopOption'),
             value: 'infinite',
-            disabled: true
+            disabled:!show.includes('infinite') 
         }
     ]
 };
@@ -321,7 +323,7 @@ const defaultNode = () => ({
     temperature: 0.6,
     model: 'ChatGPT',
     input: 'nodeInput',// nodeInput、userInput
-    userInput: '',
+    userInput: '', // 用户输入节点-提示文案
     translate: 'default',
     output: 'default',
     type: 'prompt',//运行时使用
